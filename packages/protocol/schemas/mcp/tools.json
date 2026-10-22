@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relay.newbeeai.online/schemas/mcp/1.0/tools.json",
+  "title": "Relay MCP 1.0：5 个通用工具的输入 Schema",
+  "description": "工具集合固定，不随供给方增长。工具名用下划线，满足 Anthropic 与 OpenAI 的工具名正则。每个工具的 Schema 自包含（不引用 $defs、顶层没有 oneOf/anyOf/allOf），可以原样作为 MCP 工具的 inputSchema 发布；组合约束由 validateToolInput 补充校验。",
+  "$defs": {
+    "supplier_id": { "type": "string", "pattern": "^sup_[0-9A-Za-z]{6,40}$" },
+    "order_id": { "type": "string", "pattern": "^ord_[0-9A-Za-z]{10,40}$" },
+    "relay_search": {
+      "type": "object",
+      "properties": {
+        "query": { "type": "string", "minLength": 1, "maxLength": 200, "description": "自然语言描述要做的事，例如「预约明天下午理发」" },
+        "category": { "type": "string", "maxLength": 50 },
+        "region": { "type": "string", "maxLength": 100 },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 20, "default": 8 }
+      },
+      "required": ["query"],
+      "additionalProperties": false
+    },
+    "relay_describe": {
+      "type": "object",
+      "properties": {
+        "supplier_id": { "type": "string", "pattern": "^sup_[0-9A-Za-z]{6,40}$" },
+        "action": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" }
+      },
+      "required": ["supplier_id", "action"],
+      "additionalProperties": false
+    },
+    "relay_invoke": {
+      "type": "object",
+      "properties": {
+        "supplier_id": { "type": "string", "pattern": "^sup_[0-9A-Za-z]{6,40}$" },
+        "action": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" },
+        "input": { "type": "object", "description": "按 relay_describe 返回的 input Schema 填写" },
+        "request_id": { "type": "string", "minLength": 8, "maxLength": 64, "description": "AI 生成的去重键；同一 AI 客户端 24 小时内重复提交返回同一订单" },
+        "confirmation_code": { "type": "string", "minLength": 6, "maxLength": 12, "description": "用户从 Relay 收到并转交的一次性确认码，可选" }
+      },
+      "required": ["supplier_id", "action", "input"],
+      "additionalProperties": false
+    },
+    "relay_status": {
+      "type": "object",
+      "properties": {
+        "order_id": { "type": "string", "pattern": "^ord_[0-9A-Za-z]{10,40}$", "description": "不填时返回该用户最近 20 笔进行中或待选的订单" }
+      },
+      "additionalProperties": false
+    },
+    "relay_choose": {
+      "type": "object",
+      "properties": {
+        "order_id": { "type": "string", "pattern": "^ord_[0-9A-Za-z]{10,40}$" },
+        "proposal_id": { "type": "string", "minLength": 1, "maxLength": 128, "description": "要选定的方案；和 cancel 二选一" },
+        "cancel": { "type": "boolean", "const": true, "description": "取消这笔未完成的订单时传 true；和 proposal_id 二选一" },
+        "confirmation_code": { "type": "string", "minLength": 6, "maxLength": 12 }
+      },
+      "required": ["order_id"],
+      "additionalProperties": false
+    }
+  }
+}

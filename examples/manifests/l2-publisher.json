@@ -1,0 +1,63 @@
+{
+  "rsp": "1.0",
+  "supplier": {
+    "name": "文章发布（L2 异步示例）",
+    "description": "把一篇文章发布到用户已授权的公众号等渠道。异步任务示例：发布在后台完成，结果通过回调返回。",
+    "locale": "zh-CN",
+    "categories": ["内容发布"],
+    "user_binding": "token",
+    "binding": {
+      "help_url": "https://publisher.example.com/settings/relay-binding",
+      "instructions": "在发文产品后台「设置 → AI Relay」生成一次性绑定码，粘贴到 Relay。"
+    }
+  },
+  "endpoint": { "url": "https://publisher.example.com/relay", "auth": "hmac-sha256" },
+  "actions": [
+    {
+      "name": "list_channels",
+      "title": "列出可发布渠道",
+      "input": { "type": "object", "properties": {}, "additionalProperties": false },
+      "output": {
+        "type": "object",
+        "properties": { "channels": { "type": "array", "items": { "type": "object", "properties": { "channel_id": { "type": "string" }, "name": { "type": "string" } } } } },
+        "required": ["channels"]
+      },
+      "readonly": true,
+      "risk": "low",
+      "confirm": "never",
+      "mode": "sync",
+      "billing": "none",
+      "fee": 0,
+      "amount": "none"
+    },
+    {
+      "name": "publish_article",
+      "title": "发布文章",
+      "description": "以用户名义公开发布，发布后不可撤回。",
+      "input": {
+        "type": "object",
+        "properties": {
+          "channel_id": { "type": "string" },
+          "title": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "body_markdown": { "type": "string", "minLength": 1, "maxLength": 50000 },
+          "cover_url": { "type": "string", "format": "uri" }
+        },
+        "required": ["channel_id", "title", "body_markdown"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": { "article_url": { "type": "string", "format": "uri" }, "published_at": { "type": "string", "format": "date-time" } },
+        "required": ["article_url"]
+      },
+      "display_fields": ["channel_id", "title"],
+      "risk": "high",
+      "confirm": "always",
+      "mode": "async",
+      "billing": "on_complete",
+      "fee": 1000,
+      "amount": "none",
+      "timeout_seconds": 86400
+    }
+  ]
+}

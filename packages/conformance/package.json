@@ -1,0 +1,8 @@
+{
+  "name": "@ai-relay/conformance",
+  "version": "0.0.0",
+  "private": true,
+  "description": "RSP 1.0 接入验收工具（占位，尚未实现）：对供给方的 POST /relay 端点逐项发真签名信封，全部通过即接入完成。",
+  "license": "Apache-2.0",
+  "type": "module"
+}

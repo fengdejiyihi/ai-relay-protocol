@@ -1,0 +1,141 @@
+{
+  "rsp": "1.0",
+  "supplier": {
+    "name": "Relay 沙箱理发店",
+    "description": "AI Relay 自营的到店预约沙箱商家，用于演示、接入参照和端到端测试。数据每天重置，不对应真实门店。",
+    "locale": "zh-CN",
+    "categories": ["美发", "到店预约"],
+    "region": "北京市朝阳区",
+    "user_binding": "none"
+  },
+  "endpoint": {
+    "url": "https://sandbox.relay.newbeeai.online/relay",
+    "auth": "hmac-sha256",
+    "max_concurrency": 20
+  },
+  "actions": [
+    {
+      "name": "list_slots",
+      "title": "查询可预约时段",
+      "description": "按日期返回门店当天的空闲时段，可按服务项目过滤。",
+      "input": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string", "format": "date", "description": "要查询的日期，YYYY-MM-DD" },
+          "service": { "type": "string", "enum": ["haircut", "wash", "color"], "description": "服务项目，不填返回全部" }
+        },
+        "required": ["date"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slot_id": { "type": "string" },
+                "start": { "type": "string", "format": "date-time" },
+                "service": { "type": "string" },
+                "price_cents": { "type": "integer" }
+              },
+              "required": ["slot_id", "start", "service", "price_cents"]
+            }
+          }
+        },
+        "required": ["slots"]
+      },
+      "readonly": true,
+      "risk": "low",
+      "confirm": "never",
+      "mode": "sync",
+      "billing": "none",
+      "fee": 0,
+      "amount": "none",
+      "tags": ["查询"]
+    },
+    {
+      "name": "book_slot",
+      "title": "预约到店",
+      "description": "锁定一个时段并登记联系人。到店付款，price_cents 是用户到店要付的钱，Relay 不收。",
+      "input": {
+        "type": "object",
+        "properties": {
+          "slot_id": { "type": "string", "description": "list_slots 返回的时段 id" },
+          "price_cents": { "type": "integer", "minimum": 0, "description": "该时段的价格（分），照抄 list_slots 返回的 price_cents；和时段价格对不上时返回 invalid_input" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 20, "description": "到店人称呼" },
+          "phone": { "type": "string", "pattern": "^1[3-9]\\d{9}$", "x-pii": true, "description": "手机号，门店用来联系" }
+        },
+        "required": ["slot_id", "price_cents", "name", "phone"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "booking_id": { "type": "string" },
+          "start": { "type": "string", "format": "date-time" },
+          "service": { "type": "string" },
+          "price_cents": { "type": "integer" }
+        },
+        "required": ["booking_id", "start", "service", "price_cents"]
+      },
+      "display_fields": ["slot_id", "price_cents", "name", "phone"],
+      "risk": "medium",
+      "confirm": "by_grant",
+      "mode": "sync",
+      "billing": "on_complete",
+      "fee": 0,
+      "amount": { "from": "input.price_cents" },
+      "tags": ["下单"]
+    },
+    {
+      "name": "get_booking",
+      "title": "查询预约",
+      "input": {
+        "type": "object",
+        "properties": { "booking_id": { "type": "string" } },
+        "required": ["booking_id"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "booking_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["booked", "cancelled"] },
+          "start": { "type": "string", "format": "date-time" }
+        },
+        "required": ["booking_id", "status", "start"]
+      },
+      "readonly": true,
+      "risk": "low",
+      "confirm": "never",
+      "mode": "sync",
+      "billing": "none",
+      "fee": 0,
+      "amount": "none"
+    },
+    {
+      "name": "cancel_booking",
+      "title": "取消预约",
+      "input": {
+        "type": "object",
+        "properties": { "booking_id": { "type": "string" } },
+        "required": ["booking_id"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": { "booking_id": { "type": "string" }, "status": { "const": "cancelled" } },
+        "required": ["booking_id", "status"]
+      },
+      "display_fields": ["booking_id"],
+      "risk": "medium",
+      "confirm": "by_grant",
+      "mode": "sync",
+      "billing": "none",
+      "fee": 0,
+      "amount": "none"
+    }
+  ]
+}

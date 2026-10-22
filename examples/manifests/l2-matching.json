@@ -1,0 +1,43 @@
+{
+  "rsp": "1.0",
+  "supplier": {
+    "name": "外包撮合（L2 多方案示例）",
+    "description": "把用户的外包需求发给平台上的服务商，收集报价方案，用户选定后交换联系方式。",
+    "locale": "zh-CN",
+    "categories": ["外包撮合", "软件开发"],
+    "user_binding": "token",
+    "binding": { "help_url": "https://match.example.com/settings/relay" }
+  },
+  "endpoint": { "url": "https://match.example.com/relay", "auth": "hmac-sha256" },
+  "actions": [
+    {
+      "name": "post_request",
+      "title": "发布外包需求",
+      "description": "公开发布需求并收集报价，最长 7 天。",
+      "input": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "minLength": 4, "maxLength": 80 },
+          "detail": { "type": "string", "minLength": 10, "maxLength": 5000 },
+          "budget_cents": { "type": "integer", "minimum": 0, "description": "预算，单位分" },
+          "deadline_days": { "type": "integer", "minimum": 1, "maximum": 365 }
+        },
+        "required": ["title", "detail", "budget_cents"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": { "contact": { "type": "string" }, "proposal_id": { "type": "string" } },
+        "required": ["proposal_id"]
+      },
+      "display_fields": ["title", "budget_cents"],
+      "risk": "high",
+      "confirm": "always",
+      "mode": "async_multi",
+      "billing": "on_complete",
+      "fee": 1000,
+      "amount": { "from": "input.budget_cents" },
+      "timeout_seconds": 604800
+    }
+  ]
+}

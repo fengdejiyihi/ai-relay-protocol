@@ -1,0 +1,37 @@
+# AI Relay Protocol (RSP 1.0)
+
+> RSP 1.0 (Relay Supplier Protocol) lets any product be called by users' AIs through AI Relay. A supplier implements ONE HTTPS endpoint `POST /relay` that receives HMAC-SHA256 signed JSON envelopes, plus a JSON manifest describing its actions with JSON Schema. Docs are in Chinese; JSON Schema is the source of truth.
+
+本仓库是 RSP 1.0 的公开定义。如果你是在帮一个产品接入 AI Relay 的 AI，按下面顺序读，读完就能写出 L1 实现。只能贴一个文件时用 [llms-full.txt](llms-full.txt)，它把规范、Schema、示例拼在一起。
+
+重要：你是供给方，**跳过规范第 15 节**（那是 AI 侧的 Relay MCP，与供给方无关）。供给方代码不做任何计费动作。
+
+## 必读
+
+- [RSP 1.0 规范](docs/protocol/rsp-1.0.md)：第 1–14 节和附录 A（可复算的签名样例）、附录 B（最小 L1 骨架）
+- [清单 Schema](packages/protocol/schemas/manifest.json)：你要提交的清单
+- [下行信封 Schema](packages/protocol/schemas/downstream.json)：Relay 发给你的请求。必须忽略不认识的字段（规范第 14 节）
+- [同步响应 Schema](packages/protocol/schemas/responses.json)：你返回的响应体
+- [公共定义](packages/protocol/schemas/common.json)：output 的 data + parts、错误码等
+- [示例清单：沙箱理发店（L1 同步）](examples/manifests/sandbox-shop.json)
+
+## 参照实现与教程
+
+- [沙箱理发店 README](apps/sandbox-shop/README.md)：一个下午接入 L1 的分步教程
+- [沙箱的 /relay 处理](apps/sandbox-shop/src/relay.ts)、[动作实现](apps/sandbox-shop/src/actions.ts)
+- [沙箱端到端测试](apps/sandbox-shop/test/relay.e2e.test.ts)：照这个清单自测
+
+## 异步（L2）才需要
+
+- [回调 Schema](packages/protocol/schemas/upstream.json)：你发给 Relay 的回调
+- [示例清单：异步发布（L2）](examples/manifests/l2-publisher.json)
+- [示例清单：多方案撮合（L2）](examples/manifests/l2-matching.json)
+
+## 完成标准
+
+- 接入验收工具 `@ai-relay/conformance` 全部通过（开发中；发布前按沙箱端到端测试的清单自测）
+
+## Optional
+
+- [设计决定 ADR](docs/adr/README.md)
+- [TypeScript 协议包](packages/protocol/README.md)：Node 项目可直接 `npm install @ai-relay/protocol` 用它校验和签名

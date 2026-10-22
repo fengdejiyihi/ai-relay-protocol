@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relay.newbeeai.online/schemas/rsp/1.0/common.json",
+  "title": "RSP 1.0 公共定义",
+  "$defs": {
+    "rsp_version": { "type": "string", "const": "1.0" },
+    "order_id": { "type": "string", "pattern": "^ord_[0-9A-Za-z]{10,40}$" },
+    "task_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "proposal_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "event_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "action_name": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$" },
+    "unix_seconds": { "type": "integer", "minimum": 1700000000 },
+    "cents": { "type": "integer", "minimum": 0, "maximum": 100000000000 },
+    "risk": { "type": "string", "enum": ["low", "medium", "high"] },
+    "confirm": { "type": "string", "enum": ["never", "by_grant", "always"] },
+    "mode": { "type": "string", "enum": ["sync", "async", "async_multi"] },
+    "billing": { "type": "string", "enum": ["none", "on_accept", "on_complete"] },
+    "user_binding": { "type": "string", "enum": ["none", "token", "oauth"] },
+    "amount_spec": {
+      "oneOf": [
+        { "type": "string", "const": "none" },
+        { "$ref": "#/$defs/cents" },
+        {
+          "type": "object",
+          "properties": { "from": { "type": "string", "pattern": "^input\\.[A-Za-z_][A-Za-z0-9_]*$" } },
+          "required": ["from"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "error_code": {
+      "type": "string",
+      "enum": ["invalid_input", "not_available", "unauthorized", "rate_limited", "temporary", "permanent", "not_supported"]
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": { "$ref": "#/$defs/error_code" },
+        "message": { "type": "string", "maxLength": 2000 },
+        "retry_after": { "type": "integer", "minimum": 0 },
+        "details": {}
+      },
+      "required": ["code"],
+      "additionalProperties": false
+    },
+    "part": {
+      "type": "object",
+      "oneOf": [
+        {
+          "properties": {
+            "type": { "enum": ["text", "markdown"] },
+            "text": { "type": "string", "maxLength": 200000 }
+          },
+          "required": ["type", "text"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "image" },
+            "url": { "type": "string", "format": "uri" },
+            "base64": { "type": "string" },
+            "mime": { "type": "string", "pattern": "^image/" },
+            "alt": { "type": "string", "maxLength": 500 }
+          },
+          "required": ["type"],
+          "oneOf": [
+            { "required": ["url"], "not": { "required": ["base64"] } },
+            { "required": ["base64", "mime"], "not": { "required": ["url"] } }
+          ],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "file" },
+            "url": { "type": "string", "format": "uri" },
+            "name": { "type": "string", "maxLength": 255 },
+            "mime": { "type": "string" },
+            "size": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["type", "url", "name"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "link" },
+            "url": { "type": "string", "format": "uri" },
+            "title": { "type": "string", "maxLength": 500 }
+          },
+          "required": ["type", "url", "title"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "json" },
+            "value": {}
+          },
+          "required": ["type", "value"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "data": { "type": "object" },
+        "parts": { "type": "array", "items": { "$ref": "#/$defs/part" }, "maxItems": 50 }
+      },
+      "required": ["data"],
+      "additionalProperties": false
+    },
+    "proposal": {
+      "type": "object",
+      "properties": {
+        "proposal_id": { "$ref": "#/$defs/proposal_id" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "price_cents": { "$ref": "#/$defs/cents" },
+        "eta_days": { "type": "integer", "minimum": 0 },
+        "content": { "$ref": "#/$defs/output" }
+      },
+      "required": ["proposal_id", "title", "content"],
+      "additionalProperties": false
+    },
+    "user": {
+      "type": "object",
+      "properties": {
+        "relay_uid": { "type": "string", "pattern": "^u_[0-9A-Za-z_]{8,64}$" },
+        "display_name": { "type": "string", "maxLength": 100 },
+        "supplier_user_ref": { "type": ["string", "null"], "maxLength": 256 }
+      },
+      "required": ["relay_uid", "supplier_user_ref"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,34 @@
+# 推 tag protocol-v<版本> 时把 @ai-relay/protocol 发到 npm。
+# 用 npm 可信发布（OIDC），不存 token；需要先在 npmjs.com 把包绑定到本仓库和本文件。
+name: release
+
+on:
+  push:
+    tags: ["protocol-v*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      # 可信发布要求 npm ≥ 11.5.1
+      - run: npm install -g npm@11
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - name: 核对 tag 与版本号
+        run: |
+          version=$(node -p "require('./packages/protocol/package.json').version")
+          test "protocol-v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME 与版本 $version 不符"; exit 1; }
+          case "$version" in *-*) echo "NPM_TAG=next" >> "$GITHUB_ENV";; *) echo "NPM_TAG=latest" >> "$GITHUB_ENV";; esac
+      - run: npm publish --access public --provenance --tag "$NPM_TAG"
+        working-directory: packages/protocol

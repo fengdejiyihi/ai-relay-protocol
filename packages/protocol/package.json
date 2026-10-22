@@ -1,0 +1,59 @@
+{
+  "name": "@ai-relay/protocol",
+  "version": "1.0.0-rc.1",
+  "description": "Relay Supplier Protocol (RSP) 1.0 与 Relay MCP 的单一真相源：JSON Schema、TypeScript 类型、校验器、签名、常量。",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fengdejiyihi/ai-relay-protocol.git",
+    "directory": "packages/protocol"
+  },
+  "homepage": "https://github.com/fengdejiyihi/ai-relay-protocol#readme",
+  "bugs": {
+    "url": "https://github.com/fengdejiyihi/ai-relay-protocol/issues"
+  },
+  "keywords": [
+    "ai-relay",
+    "rsp",
+    "mcp",
+    "protocol",
+    "json-schema"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./schemas/*": "./schemas/*"
+  },
+  "files": [
+    "dist",
+    "schemas",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "node scripts/check-schemas.mjs",
+    "test": "vitest run",
+    "validate:examples": "tsc -p tsconfig.build.json && node scripts/validate-examples.mjs"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

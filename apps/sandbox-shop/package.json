@@ -1,0 +1,31 @@
+{
+  "name": "@ai-relay/sandbox-shop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Relay 沙箱理发店：RSP 1.0 L1 参照实现（一个 POST /relay 端点，4 个同步动作）。",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "bin": {
+    "sandbox-shop": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "node --disable-warning=ExperimentalWarning dist/main.js",
+    "dev": "pnpm build && pnpm start"
+  },
+  "dependencies": {
+    "@ai-relay/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  }
+}
