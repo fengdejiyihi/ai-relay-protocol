@@ -1,0 +1,8 @@
+{
+  "list_channels": {},
+  "publish_article": {
+    "channel_id": "{{list_channels.channels[0].channel_id}}",
+    "title": "接入验收测试文章",
+    "body_markdown": "这是一篇接入验收自动发出的测试文章，可以忽略。"
+  }
+}

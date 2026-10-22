@@ -2,9 +2,18 @@
 
 > RSP 1.0 (Relay Supplier Protocol) lets any product be called by users' AIs through AI Relay. A supplier implements ONE HTTPS endpoint `POST /relay` that receives HMAC-SHA256 signed JSON envelopes, plus a JSON manifest describing its actions with JSON Schema. Docs are in Chinese; JSON Schema is the source of truth.
 
-本仓库是 RSP 1.0 的公开定义。如果你是在帮一个产品接入 AI Relay 的 AI，按下面顺序读，读完就能写出 L1 实现。只能贴一个文件时用 [llms-full.txt](llms-full.txt)，它把规范、Schema、示例拼在一起。
+本仓库是 RSP 1.0 的公开定义。如果你是在帮一个产品接入 AI Relay 的 AI，先读[接入总览](docs/integrate/README.md)选档位，再读对应档位的指南，读完就能写出实现。只能贴一个文件时用 [llms-full.txt](llms-full.txt)，它把接入指南、规范、Schema、示例拼在一起。
 
 重要：你是供给方，**跳过规范第 15 节**（那是 AI 侧的 Relay MCP，与供给方无关）。供给方代码不做任何计费动作。
+
+## 接入指南
+
+- [接入总览](docs/integrate/README.md)：选档位、从注册到上线的 6 步、包的发布状态
+- [L1：一个端点（同步）](docs/integrate/l1.md)：清单、`POST /relay`、验签、幂等、错误码，Node 和 Python SDK 示例，本机自测
+- [L2：异步与多方案](docs/integrate/l2.md)：接单、回调、补拉、取消、多方案
+- [账号绑定](docs/integrate/binding.md)：一次性绑定码和 `binding.verify`
+- [计费与结算](docs/integrate/billing.md)：手续费与用户金额、扣费时刻、余额、争议
+- [L0：从 OpenAPI 导入](docs/integrate/l0.md)：零代码，Relay 托管适配器替你转发
 
 ## 必读
 
@@ -27,9 +36,15 @@
 - [示例清单：异步发布（L2）](examples/manifests/l2-publisher.json)
 - [示例清单：多方案撮合（L2）](examples/manifests/l2-matching.json)
 
+## SDK 与验收工具
+
+- [Node SDK](packages/sdk-node/README.md)：`@dreamcavy/ai-relay-sdk`，验签、分发、输入校验、幂等、回调
+- [Python SDK](packages/sdk-python/README.md)：`dreamcavy-ai-relay-sdk`，适配 FastAPI、Flask、WSGI
+- [接入验收工具](packages/conformance/README.md)：`@dreamcavy/ai-relay-conformance`，本机和后台在线验收用同一套检查
+
 ## 完成标准
 
-- 接入验收工具 `@dreamcavy/ai-relay-conformance` 全部通过（开发中；发布前按沙箱端到端测试的清单自测）
+- 接入验收工具 `@dreamcavy/ai-relay-conformance` 没有失败项。包还没发布到 npm 时在本仓库里运行，见[接入总览](docs/integrate/README.md)的「包的发布状态」
 
 ## Optional
 

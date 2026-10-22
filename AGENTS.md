@@ -6,7 +6,7 @@
 
 你的产品是**供给方**。目标是实现 `POST /relay` 和一份清单，并通过验收。
 
-先读 [`llms.txt`](llms.txt) 列出的文件。规范第 15 节是 AI 侧的 MCP，**跳过**。
+先读 [`llms.txt`](llms.txt) 列出的文件，从[接入总览](docs/integrate/README.md)开始。规范第 15 节是 AI 侧的 MCP，**跳过**。
 
 工作清单：
 
@@ -18,9 +18,9 @@
 6. **幂等**。同一个 `idempotency_key` 重放必须返回同一结果，不能重复办事。
 7. **不做计费**。扣费、确认、授权都由 Relay 判定，你的代码只办事并如实返回结果。如果动作有用户金额（`amount`），收到后核对它和你的真实价格一致，对不上回 `invalid_input`。
 8. **返回 data + parts**。`data` 按清单 `output` Schema；`parts` 可选，给用户看的 markdown、链接、图片。
-9. **完成标准**：`@dreamcavy/ai-relay-conformance` 全部通过（开发中）。在它发布前，照 [`apps/sandbox-shop/test/relay.e2e.test.ts`](apps/sandbox-shop/test/relay.e2e.test.ts) 的场景给你的端点写测试并全部通过。
+9. **完成标准**：`@dreamcavy/ai-relay-conformance` 没有失败项。包还没发布到 npm 时，在本仓库 `pnpm install && pnpm build` 之后用 `node <本仓库路径>/packages/conformance/dist/cli.js ...` 运行，见[接入总览](docs/integrate/README.md)的「包的发布状态」。
 
-Node/TypeScript 项目可以 `npm install @dreamcavy/ai-relay-protocol`，用 `validateManifest`、`validateDownstream`、`verifySignature`。其他语言不需要 SDK。
+Node 项目用 [`@dreamcavy/ai-relay-sdk`](packages/sdk-node/README.md)，Python 项目用 [`dreamcavy-ai-relay-sdk`](packages/sdk-python/README.md)，验签、分发、幂等都做好了。其他语言不需要 SDK，照规范附录 B 写。
 
 ## 情况二：你在修改本仓库
 

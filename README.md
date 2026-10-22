@@ -6,14 +6,16 @@
 
 | 你要找的 | 位置 |
 |---|---|
+| 接入指南：选档位、L0 / L1 / L2、账号绑定、计费 | [`docs/integrate/`](docs/integrate/README.md) |
 | 协议规范（必读） | [`docs/protocol/rsp-1.0.md`](docs/protocol/rsp-1.0.md) |
 | JSON Schema（机器可读定义，与规范不一致时以它为准） | [`packages/protocol/schemas/`](packages/protocol/schemas/) |
 | TypeScript 协议包 `@dreamcavy/ai-relay-protocol`：校验、签名、常量 | [`packages/protocol/`](packages/protocol/) |
 | 参照实现：沙箱理发店（L1，Node，零框架）+ 一步步接入教程 | [`apps/sandbox-shop/`](apps/sandbox-shop/) |
 | 示例清单：同步 L1、异步 L2、多方案 L2 | [`examples/manifests/`](examples/manifests/) |
 | 设计决定（为什么这样设计） | [`docs/adr/`](docs/adr/) |
+| 供给方 Node SDK `@dreamcavy/ai-relay-sdk`：验签、分发、输入校验、幂等、回调 | [`packages/sdk-node/`](packages/sdk-node/) |
 | 供给方 Python SDK `dreamcavy-ai-relay-sdk`：验签、分发、幂等、回调，适配 FastAPI / Flask | [`packages/sdk-python/`](packages/sdk-python/) |
-| 接入验收工具 `@dreamcavy/ai-relay-conformance` | [`packages/conformance/`](packages/conformance/)（开发中） |
+| 接入验收工具 `@dreamcavy/ai-relay-conformance` | [`packages/conformance/`](packages/conformance/) |
 | 给 AI 读的入口 | [`llms.txt`](llms.txt)、[`llms-full.txt`](llms-full.txt)、[`AGENTS.md`](AGENTS.md) |
 
 ## 它怎么工作
@@ -29,28 +31,30 @@
 - 要不要用户确认、扣不扣费，都由 Relay 服务端判定。你的代码不做计费。
 - 签名与 Stripe Webhook 同款：`HMAC-SHA256(secret, t + "." + 原始请求体)`。
 
+## 一句话交给你的编码 AI
+
+```text
+请读 https://relay.newbeeai.online/llms.txt ，按里面的接入指南把我们的产品接入 AI Relay：先选档位、写清单，再实现 POST /relay，最后用接入验收工具跑到全绿。
+```
+
+在本仓库里工作的编码 AI 直接读 [`llms.txt`](llms.txt) 和 [`AGENTS.md`](AGENTS.md)。
+
 ## 三档接入
 
-| 档位 | 你要实现 | 典型耗时 |
-|---|---|---|
-| L0 零代码 | 导入 OpenAPI，由 Relay 托管适配器转发 | 1–2 小时 |
-| L1 一个端点 | `POST /relay`：`ping` + `action.invoke`，加一份清单 | 半天 |
-| L2 异步 | L1 + `accepted` + 回调；多方案再加 `proposal.*` | 1–2 天 |
+| 档位 | 你要实现 | 典型耗时 | 指南 |
+|---|---|---|---|
+| L0 零代码 | 导入 OpenAPI，由 Relay 托管适配器转发 | 1–2 小时 | [l0.md](docs/integrate/l0.md) |
+| L1 一个端点 | `POST /relay`：`ping` + `action.invoke`，加一份清单 | 半天 | [l1.md](docs/integrate/l1.md) |
+| L2 异步 | L1 + `accepted` + 回调；多方案再加 `proposal.*` | 1–2 天 | [l2.md](docs/integrate/l2.md) |
 
 ## 十分钟起步（L1）
 
 1. 照 [`examples/manifests/sandbox-shop.json`](examples/manifests/sandbox-shop.json) 写你的清单。
 2. 实现 `POST /relay`：验签 → 按 `type` 分发 → 同步返回 `{"status":"completed","output":{"data":…,"parts":[…]}}`。规范附录 B 有一份无依赖的 Node 骨架，任何语言都能照写。
 3. 本地跑沙箱对照：`pnpm install && pnpm build && RELAY_SECRETS=whsec_dev pnpm --filter @ai-relay/sandbox-shop start`。
-4. 自测到全部通过。验收工具发布前，照 [`apps/sandbox-shop/test/relay.e2e.test.ts`](apps/sandbox-shop/test/relay.e2e.test.ts) 的清单写测试；发布后跑 `npx @dreamcavy/ai-relay-conformance` 到全绿即完成。
+4. 用接入验收工具自测到没有失败项：发布到 npm 后是 `npx @dreamcavy/ai-relay-conformance`，发布前在本仓库里运行，见[接入总览](docs/integrate/README.md)。
 
-用 TypeScript 的话可以直接装协议包：
-
-```sh
-npm install @dreamcavy/ai-relay-protocol
-```
-
-其他语言不需要 SDK：Schema 在 `packages/protocol/schemas/`，签名约 15 行代码。
+Node 和 Python 有供给方 SDK（[`packages/sdk-node/`](packages/sdk-node/)、[`packages/sdk-python/`](packages/sdk-python/)），验签、分发、幂等都做好了，完整步骤见 [L1 指南](docs/integrate/l1.md)。其他语言不需要 SDK：Schema 在 `packages/protocol/schemas/`，签名约 15 行代码。
 
 > 供给方入驻（在 Relay 后台注册、拿 secret、上架）尚未开放。想抢先接入，请开一个 issue。
 

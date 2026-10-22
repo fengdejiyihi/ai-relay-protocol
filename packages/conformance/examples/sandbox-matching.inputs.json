@@ -1,0 +1,8 @@
+{
+  "post_request": {
+    "title": "接入验收测试需求",
+    "detail": "这是一条接入验收自动发出的测试需求，可以忽略。",
+    "budget_cents": 500000,
+    "deadline_days": 14
+  }
+}

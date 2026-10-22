@@ -1,6 +1,693 @@
 # AI Relay Protocol (RSP 1.0) — full text
 > 由 llms.txt 列出的核心文件拼接而成，供只能读取单个文件的 AI 使用。你是供给方时跳过规范第 15 节。
 
+## 文件：docs/integrate/README.md
+
+# 接入 AI Relay
+
+让用户的 AI（Claude、ChatGPT、豆包等）直接调用你的产品：AI 通过 AI Relay 找到你的动作，替用户下单，Relay 负责确认、授权和记账，你只管把事办好。
+
+## 一句话交给你的编码 AI
+
+把下面这句话发给 Cursor、Claude Code、Codex 等编码 AI，它会照着本文档接入。签名 secret 自己填进环境变量，不要贴给 AI，也不要提交进代码仓库。
+
+```text
+请读 https://relay.newbeeai.online/llms.txt ，按里面的接入指南把我们的产品接入 AI Relay：先选档位、写清单，再实现 POST /relay，最后用接入验收工具跑到全绿。
+```
+
+## 你要做什么
+
+| 你做 | Relay 做 |
+|---|---|
+| 一份 JSON 清单：有哪些动作，输入输出长什么样，风险多高，收不收费 | 让 AI 搜到你的动作，按清单校验输入 |
+| 一个 HTTPS 端点 `POST /relay`：验签，按动作办事，如实返回结果 | 按用户给 AI 的授权判定要不要确认，要确认就让用户在网页上点 |
+| （异步才要）办完后签名回调 Relay | 下发、重试、补拉、超时取消，到计费点扣手续费 |
+
+你的代码不碰计费、不做确认、不判断授权。用户付给你的钱照旧走你自己的收款渠道，Relay 不经手。
+
+## 选档位
+
+| 档位 | 适合 | 你要实现 | 典型耗时 | 指南 |
+|---|---|---|---|---|
+| L0 零代码 | 已经有 OpenAPI 文档的 REST 接口，动作都能当场给结果 | 在后台导入 OpenAPI，勾选要开放的接口 | 1–2 小时 | [L0：从 OpenAPI 导入](l0.md) |
+| L1 一个端点 | 动作 3 秒内能给结果：查询、预约、下单 | `POST /relay` 处理 `ping` 和 `action.invoke` | 半天 | [L1：一个端点](l1.md) |
+| L2 异步 | 要排队、人工处理，或者多家报价让用户选 | L1 加上接单、回调、补拉、取消；多方案再加方案推送和选定 | 1–2 天 | [L2：异步与多方案](l2.md) |
+
+拿不准就先做 L1。产品要知道「这是我们哪个用户」时，在所在档位之上再做[账号绑定](binding.md)。收费规则见[计费与结算](billing.md)。
+
+## 从注册到上线
+
+供给方后台在 `https://relay.newbeeai.online/supplier`。后台首页的「入驻进度」和下面 6 步一一对应。
+
+1. **注册**：注册账号时选「供给方」，填产品名（1–100 字）、一句话介绍（1–200 字）、端点地址（`https://`）、联系人和邮箱。拿到 `supplier_id` 和签名 secret（`whsec_` 开头，**只显示一次**，Relay 加密保存，后台也看不到明文）。
+2. **写清单**：在「动作清单」里用表单填，或直接粘贴 JSON；L0 在「从 OpenAPI 导入」里生成。每个动作顺手填一份样例输入，在线验收要用。
+3. **实现端点**：按所选档位的指南写，本机用接入验收工具自测到全绿。
+4. **在线验收**：打开清单版本页，点「开始在线验收」。Relay 用真签名调用你的端点，逐项给出红绿。每个动作都会真的下单：同步动作一单，异步动作（`async`、`async_multi`）两单（一单走完、另一单验取消）。请接测试环境或用可撤销的样例。全绿才能提交审核。
+5. **提交审核**：管理员一般 1 个工作日内处理。审核标准：动作描述人能看懂；风险等级不低于平台规则（对外发布、代付款必须是 `high`）；收费动作的手续费在 ¥1–¥100 每笔；不是违法业务。驳回会写原因，结果发邮件到联系邮箱。
+6. **充值，进入搜索**：手续费从预付余额里扣。余额不低于你最高的单笔手续费时，收费动作才出现在搜索里。目前由管理员手工入账，见[计费与结算](billing.md)。
+
+上线后还可以在后台看订单、流水、争议和质量指标。改清单要另存一个新版本，重新验收、提交审核；在途订单按下单时的版本走。
+
+## 接入验收工具
+
+`@dreamcavy/ai-relay-conformance` 读你的清单，用真签名逐项调用你的端点：验签、`ping`、每个动作、同键重放、未知类型、响应 Schema，异步动作还跟到最终结果。后台的「在线验收」用的是同一套检查，本机全绿，后台也会全绿。用法和全部检查项见 [Conformance README](../../packages/conformance/README.md)。
+
+```sh
+npx @dreamcavy/ai-relay-conformance --manifest manifest.json \
+  --endpoint http://127.0.0.1:8787/relay --secret "$RELAY_SECRET" --inputs inputs.json
+```
+
+## 包的发布状态
+
+| 包 | 用途 | 状态 |
+|---|---|---|
+| `@dreamcavy/ai-relay-sdk`（npm） | Node 供给方 SDK：验签、分发、输入校验、幂等、回调 | 准备发布 |
+| `dreamcavy-ai-relay-sdk`（PyPI） | Python 供给方 SDK，适配 FastAPI、Flask、WSGI | 准备发布 |
+| `@dreamcavy/ai-relay-conformance`（npm） | 接入验收工具 | 准备发布 |
+| `@dreamcavy/ai-relay-protocol`（npm） | 协议包：Schema、校验、签名 | 准备发布 |
+
+发布之前，从公开仓库 [fengdejiyihi/ai-relay-protocol](https://github.com/fengdejiyihi/ai-relay-protocol) 使用。构建公开仓库要 Node 22 以上和 pnpm 10（仓库开了 `engine-strict`）；装好的 SDK 在 Node 20 以上就能跑。`pnpm install` 时提示 `Failed to create bin … sandbox-shop` 是因为还没构建，可以忽略。
+
+```sh
+git clone https://github.com/fengdejiyihi/ai-relay-protocol.git && cd ai-relay-protocol
+pnpm install && pnpm build
+
+# 接入验收：回到你的项目目录运行，参数和 npx 一样
+RELAY_SECRET=whsec_dev node <公开仓库路径>/packages/conformance/dist/cli.js --manifest manifest.json \
+  --endpoint http://127.0.0.1:8787/relay --inputs inputs.json
+
+# Node SDK：打成 tgz 装到你的项目
+pnpm --filter @dreamcavy/ai-relay-protocol --filter @dreamcavy/ai-relay-sdk pack --pack-destination /tmp/relay-pkgs
+npm install /tmp/relay-pkgs/*.tgz
+
+# Python SDK
+pip install "git+https://github.com/fengdejiyihi/ai-relay-protocol.git#subdirectory=packages/sdk-python"
+```
+
+不用 SDK 也能接：协议只要一个端点和约 15 行的 HMAC 验签，任何语言都能写，见[规范附录 B](../protocol/rsp-1.0.md)。
+
+## 文档目录
+
+- [L0：从 OpenAPI 导入](l0.md)
+- [L1：一个端点（同步）](l1.md)
+- [L2：异步与多方案](l2.md)
+- [账号绑定](binding.md)
+- [计费与结算](billing.md)
+- [RSP 1.0 规范](../protocol/rsp-1.0.md)：信封、响应、错误码、签名的完整定义。规范第 15 节是 AI 侧的 MCP，供给方跳过。
+- [JSON Schema](../../packages/protocol/schemas/)：机器可读定义，和文字不一致时以它为准
+
+## 文件：docs/integrate/l1.md
+
+# L1：一个端点（同步）
+
+适合 3 秒内能给结果的动作：查询、预约、下单。你要实现一个 HTTPS 端点 `POST /relay` 和一份清单，半天能做完。
+
+下面用一家示例花店走一遍：两个动作，查询在售鲜花（只读、免费）和下单送花（收费）。完整代码在 [Node 示例](../../packages/sdk-node/examples/l1/) 和 [Python 示例](../../packages/sdk-python/examples/bookshop.py)。
+
+## 第 1 步：写清单
+
+清单告诉 Relay 和 AI 你有哪些动作。从示例改最快：[花店清单](../../packages/sdk-node/examples/l1/manifest.json)、[沙箱理发店清单](../../examples/manifests/sandbox-shop.json)。
+
+```json
+{
+  "rsp": "1.0",
+  "supplier": {
+    "name": "示例花店",
+    "description": "查询在售鲜花，下单同城配送。",
+    "locale": "zh-CN",
+    "categories": ["鲜花", "同城配送"],
+    "user_binding": "none"
+  },
+  "endpoint": { "url": "https://flowers.example.com/relay", "auth": "hmac-sha256" },
+  "actions": [
+    {
+      "name": "list_products",
+      "title": "查询鲜花",
+      "description": "返回在售鲜花和价格，可按分类过滤。",
+      "input": {
+        "type": "object",
+        "properties": { "category": { "type": "string", "enum": ["玫瑰", "百合", "向日葵"] } },
+        "additionalProperties": false
+      },
+      "readonly": true,
+      "risk": "low", "confirm": "never", "mode": "sync",
+      "billing": "none", "fee": 0, "amount": "none"
+    },
+    {
+      "name": "place_order",
+      "title": "下单送花",
+      "description": "按商品编号下单并同城配送，返回订单号和应付金额。",
+      "input": {
+        "type": "object",
+        "properties": {
+          "sku": { "type": "string", "description": "list_products 返回的 sku" },
+          "quantity": { "type": "integer", "minimum": 1, "maximum": 99 },
+          "total_cents": { "type": "integer", "minimum": 1, "description": "应付总价（分）" },
+          "phone": { "type": "string", "pattern": "^1\\d{10}$", "x-pii": true },
+          "address": { "type": "string", "minLength": 5, "maxLength": 200, "x-pii": true }
+        },
+        "required": ["sku", "quantity", "total_cents", "phone", "address"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": { "order_no": { "type": "string" }, "total_cents": { "type": "integer" } },
+        "required": ["order_no", "total_cents"]
+      },
+      "display_fields": ["sku", "quantity", "total_cents", "address"],
+      "risk": "medium", "confirm": "by_grant", "mode": "sync",
+      "billing": "on_complete", "fee": 100, "amount": { "from": "input.total_cents" }
+    }
+  ]
+}
+```
+
+每个动作的 `input` 是 JSON Schema 2020-12，根必须是 `object`。AI 照着它填参数，Relay 照着它校验，所以 `description` 要写给 AI 看：字段从哪来、单位是什么。金额一律用整数分。
+
+### 六个元数据怎么填
+
+| 字段 | 怎么选 |
+|---|---|
+| `risk` | `low`：只读且不收费（必须同时写 `"readonly": true`、`"billing": "none"`）。`high`：对外发布内容、替用户付款、不可撤回的事，每次都要用户确认。其余写操作用 `medium` |
+| `confirm` | 你自己要求的确认强度。实际取风险对应的下限（low→`never`，medium→`by_grant`，high→`always`）和它中更严的一个，一般照下限写 |
+| `mode` | L1 只用 `sync` |
+| `billing` | 收费写 `on_complete`（返回 `completed` 时扣），不收费写 `none` |
+| `fee` | Relay 向你收的手续费，整数分。收费动作 100–10000（¥1–¥100）；`billing: "none"` 时必须是 0 |
+| `amount` | 用户在这笔交易里要花的钱，只用来和用户给 AI 设的单笔上限比较，Relay 不收。没有写 `"none"`；固定价写整数分；随输入变写 `{"from": "input.<字段>"}`，这个字段必须是必填的 `integer` |
+
+`fee` 和 `amount` 是两笔钱，详见[计费与结算](billing.md)。用户给 AI 的默认授权是最高中风险、单笔 ¥200、每笔确认：`high` 动作或金额超过 ¥200 的调用，用户第一次会被引导去授权页调高，之后才能用。
+
+会原文发给你的个人信息字段（手机号、地址）标 `"x-pii": true`，用户在确认页会看到这些信息发给了谁。`display_fields` 列出确认页重点展示的输入字段。
+
+另外几个取值：
+
+- `fee` 是你为每笔成交付给 Relay 的钱，在 ¥1–¥100 里按这一单对你值多少定；拿不准先写 100（¥1）。
+- `x-pii`：凡是会原文发给你的个人信息都标上，包括姓名、手机号、地址、证件号、邮箱。
+- `endpoint.url` 必须是 `https://`，本机自测时也写一个占位的 https 地址，用验收工具的 `--endpoint` 指到本机（见第 3 步）。
+- `endpoint.max_concurrency` 可选（1–1000），写你的端点能同时处理多少个请求。Relay 目前还不按它限流。
+
+清单的完整规则（语义检查、版本）见[规范第 4 节](../protocol/rsp-1.0.md#4-清单manifest)。
+
+## 第 2 步：写端点
+
+Relay 的每个请求都是 `POST /relay`，请求体是一个签名的 JSON 信封。L1 只会收到两种：
+
+| type | 你返回 |
+|---|---|
+| `ping` | `{"status":"ok","challenge":<原样带回>,"rsp":"1.0"}` |
+| `action.invoke` | `{"status":"completed","output":{"data":{…},"parts":[…]}}` 或 `{"status":"failed","error":{"code":"…","message":"…"}}` |
+
+### 用 Node SDK
+
+```ts
+import { createServer } from "node:http";
+import { completed, createRelayHandler, failed, toNodeHandler } from "@dreamcavy/ai-relay-sdk";
+import manifest from "./manifest.json" with { type: "json" };
+
+const relay = createRelayHandler({
+  secrets: [process.env.RELAY_SECRET!], // 轮换期写成 [新, 旧]
+  manifest,
+  handlers: {
+    list_products: (input: { category?: string }) => completed({ products: findProducts(input.category) }),
+    // 同一个 idempotency_key 再来时 SDK 直接返回第一次的结果，这里只执行一次
+    place_order: async (input: { sku: string; quantity: number; total_cents: number }, ctx) => {
+      const price = await priceOf(input.sku);
+      if (price === undefined) return failed("invalid_input", `没有商品 ${input.sku}`);
+      if (input.total_cents !== price * input.quantity) return failed("invalid_input", "总价不对");
+      if (!(await inStock(input.sku, input.quantity))) return failed("not_available", "库存不足");
+      const order = await createOrder(input, { relayOrderId: ctx.orderId });
+      return completed({ order_no: order.no, total_cents: input.total_cents }, [
+        { type: "markdown", text: `已下单，订单号 ${order.no}` },
+      ]);
+    },
+  },
+});
+
+createServer(toNodeHandler(relay)).listen(8787);
+```
+
+`findProducts`、`priceOf`、`inStock`、`createOrder` 换成你自己的业务函数。SDK 替你做了验签、`ping`、未知类型、输入校验和幂等。
+
+- SDK 只发 ESM：`package.json` 里写 `"type": "module"`，或者文件用 `.mjs`。上面是 TypeScript，用 `tsx` 或 Node 22.6 以上的类型剥离运行；写 JavaScript 就去掉类型标注。
+- **验签要原始字节**：别让 JSON 中间件先解析 `/relay` 的请求体。挂到 Express、Fastify、Next.js、Hono 的写法见 [Node SDK README](../../packages/sdk-node/README.md)。
+- 默认的幂等存储在进程内存里，进程重启就没了。上线前换成数据库或 Redis（实现 `IdempotencyStore` 的三个方法），结果至少留 8 天。
+
+### 用 Python SDK
+
+```python
+import os
+from fastapi import FastAPI
+from ai_relay_sdk import InvokeContext, RelayError, RelayHandler, completed, markdown
+from ai_relay_sdk.fastapi import relay_router
+
+def place_order(data: dict, ctx: InvokeContext) -> dict:
+    # data 已按清单的 input Schema 校验过；同一个 order_id 重发不会再进到这里
+    if not in_stock(data["sku"], data["quantity"]):
+        raise RelayError("not_available", "库存不足")
+    order_no = create_order(data, relay_order=ctx.order_id)
+    return completed({"order_no": order_no, "total_cents": data["total_cents"]}, [markdown(f"已下单，订单号 {order_no}")])
+
+relay = RelayHandler(
+    secrets=os.environ["RELAY_SECRET"].split(","),   # 轮换期：新的,旧的
+    manifest="manifest.json",
+    actions={"list_products": list_products, "place_order": place_order},
+)
+
+app = FastAPI()
+app.include_router(relay_router(relay))   # POST /relay
+```
+
+默认的幂等存储在进程内存里，进程重启就没了，上线前换成 `SqliteIdempotencyStore("relay.db")` 或你自己的数据库。Flask、不用框架的写法见 [Python SDK README](../../packages/sdk-python/README.md)。
+
+### 不用 SDK
+
+任何语言都能写，[规范附录 B](../protocol/rsp-1.0.md) 有一份无依赖的 Node 骨架，[附录 A](../protocol/rsp-1.0.md) 有可复算的签名样例。必须做到：
+
+1. **验签用原始字节**：先把请求体完整读成字节，算 `HMAC-SHA256(secret, t + "." + 原始请求体)`，和 `X-Relay-Signature` 头里的 `v1=` 做常量时间比较；`t` 和现在相差超过 300 秒拒绝。头里可能有多个 `v1=`，任一匹配即通过。验签失败回 HTTP 401。
+2. **一律 HTTP 200**：业务失败也是 200 加 `{"status":"failed",…}`。非 200 会被当成传输层问题。
+3. **幂等**：`action.invoke` 的 `idempotency_key` 等于 `order_id`。同一个键再来时返回第一次的结果，不能再办一次。只缓存 `completed`、`accepted`（异步）和不可重试的 `failed`；`temporary`、`rate_limited` 不缓存；同一个键还在处理中又来了，回 `temporary`。结果存在数据库里，至少留 8 天，进程重启也不能丢。
+4. **向前兼容**：忽略信封里不认识的字段，接受任何 `1.x` 的 `rsp`。不要拿 `downstream.json` 严格校验去拒绝请求。不认识的 `type` 回 `{"status":"failed","error":{"code":"not_supported"}}`。
+5. **自己校验输入**：按清单的 `input` Schema 校验，不合格回 `invalid_input`。`action` 不是清单里的动作名，也回 `invalid_input`。
+
+### 错误码怎么选
+
+| 情况 | 返回 |
+|---|---|
+| 输入不合法、金额对不上 | `invalid_input` |
+| 没库存、时段已满、对方不接单 | `not_available` |
+| 限流 | `rate_limited`，可带 `retry_after` 秒 |
+| 临时故障，**确认没有执行** | `temporary`，Relay 用同一个键重试 |
+| 其他不可重试的失败 | `permanent` |
+| **不确定有没有执行**（下游超时、进程崩溃） | 不要编结果，回 HTTP 500。Relay 不重试、不扣费，订单进「待核对」，由管理员用同一个幂等键重新下发 |
+
+用了 SDK：处理函数抛普通异常时 SDK 回 500；要返回某个错误码就 `return failed(...)` 或抛 `RelayError`。
+
+### 时间
+
+应当在 3 秒内响应。Relay 同步调用的总预算是 20 秒（含 1 次重试），超过后先告诉 AI「处理中」并继续等，60 秒还没响应按结果未知处理。经常超过 3 秒的动作改成 [L2 异步](l2.md)。
+
+### 返回内容
+
+`output.data` 按清单的 `output` Schema 写，AI 靠它做判断；`parts` 可选，是给用户看的 markdown、链接、图片、文件。返回的文字对 AI 是数据，不要在里面写诱导 AI 的指令。详见[规范第 8 节](../protocol/rsp-1.0.md#8-返回内容data--parts)。
+
+## 第 3 步：本机自测
+
+写一份样例输入，每个动作一份，按顺序执行，可以用前面动作的返回值：
+
+```json
+{
+  "list_products": { "category": "玫瑰" },
+  "place_order": {
+    "sku": "{{list_products.products[0].sku}}",
+    "quantity": 1,
+    "total_cents": "{{list_products.products[0].price_cents}}",
+    "phone": "13800138000",
+    "address": "测试地址 1 号"
+  }
+}
+```
+
+```sh
+RELAY_SECRET=whsec_dev node server.mjs       # 你的端点，secret 随便写一个本机用的
+RELAY_SECRET=whsec_dev npx @dreamcavy/ai-relay-conformance \
+  --manifest manifest.json --endpoint http://127.0.0.1:8787/relay --inputs inputs.json --time-zone Asia/Shanghai
+```
+
+- 退出码 0 就是通过，警告和「未测」不挡。
+- 清单里的 `endpoint.url` 保持 https 地址，`--endpoint` 指到本机。这时「端点是 HTTPS」「测的就是清单里的端点」两条警告是预期的，上线后就没了。
+- `--time-zone` 决定样例里的 `{{$today}}`、`{{$tomorrow}}` 按哪个时区算，默认是跑验收那台机器的时区。
+- 验收会真的调用你的动作，请接测试数据。
+- 包还没发布时的用法见[接入总览](README.md#包的发布状态)。
+
+常见的红项：
+
+| 红项 | 原因 |
+|---|---|
+| `auth.*` | 先解析再序列化了请求体；没拒绝过期时间戳；只认第一个 `v1=` |
+| `replay.<动作>` | 同一个 `idempotency_key` 又办了一次，或者返回的结果不一样 |
+| `envelope.unknown_type` | 不认识的 `type` 回了 4xx/5xx，应当 200 加 `not_supported` |
+| `envelope.forward_compat` | 用严格 Schema 拒掉了带新字段或 `rsp: "1.9"` 的请求 |
+| `invoke.<动作>` | 业务失败回了非 200，或者响应体不合 Schema |
+
+## 第 4 步：上线
+
+1. 端点部署到 HTTPS，清单的 `endpoint.url` 改成正式地址，secret 换成后台给的那个。
+2. 在后台保存清单，填样例输入，点「开始在线验收」到全绿，提交审核。
+3. 审核通过、余额够付手续费后，动作出现在搜索里。
+
+轮换 secret 后新旧两个并存 24 小时，这期间把新的放到第一位、旧的放第二位，过后删掉旧的。
+
+流程的其余部分见[接入总览](README.md#从注册到上线)。
+
+## 文件：docs/integrate/l2.md
+
+# L2：异步与多方案
+
+适合当场给不了结果的动作：要排队、要人工处理、要等第三方，或者要多家报价让用户选。先读 [L1：一个端点](l1.md)，L2 在它之上加几样东西，1–2 天能做完。
+
+| 模式 | 清单 `mode` | 例子 | 示例清单 |
+|---|---|---|---|
+| 异步单结果 | `async` | 发布一篇文章、生成一份报告 | [l2-publisher.json](../../examples/manifests/l2-publisher.json) |
+| 异步多方案 | `async_multi` | 发需求收报价、找服务商，用户选一个 | [l2-matching.json](../../examples/manifests/l2-matching.json) |
+
+## 一单怎么走
+
+```text
+Relay ──action.invoke──▶ 你：回 accepted(task_id)          订单：供给方已接单
+你    ──回调 completed / failed──▶ Relay                    订单：已完成 / 失败
+         （回调丢了：Relay 按 1、2、5、15 分钟发 task.poll 来取，之后每 15 分钟一次）
+Relay ──task.cancel──▶ 你：回 cancelled 或 cancel_failed     用户取消或超时
+```
+
+多方案在中间多一段：
+
+```text
+你    ──回调 proposal.add（每来一个方案发一次）──▶ Relay    订单：方案待选
+         用户在 AI 里选一个，需要确认的在网页上确认
+Relay ──proposal.select──▶ 你：回 completed（当场交付）或 selected（之后再回调 completed）
+```
+
+## 清单里要改的
+
+| 字段 | 写法 |
+|---|---|
+| `mode` | `async` 或 `async_multi` |
+| `billing` | `on_complete`（完成时扣手续费）或 `on_accept`（接单时扣，只用于异步）；不收费写 `none` |
+| `timeout_seconds` | 多久还没结果就由 Relay 取消，60 秒到 7 天，默认 24 小时 |
+
+对外发布、替用户付款这类动作风险写 `high`，每次都要用户确认（见[接入总览](README.md#从注册到上线)的审核标准）。
+
+## 要实现的信封
+
+| type | 什么时候来 | 你返回 |
+|---|---|---|
+| `action.invoke` | 下单 | `accepted`（带 `task_id`，可带 `eta_seconds`）；当场就失败可以直接回 `failed` |
+| `task.poll` | Relay 补拉 | `pending`、`completed`、`failed`；多方案还没选定时回 `proposals`（当前全部有效方案） |
+| `task.cancel` | 用户取消（`reason: "user_cancelled"`）、超时（`expired`）、方案没人选（`no_selection`） | 撤回了回 `cancelled`；已经办完、撤不回了回 `cancel_failed` |
+| `proposal.select` | 用户选定一个方案（只有多方案） | 当场交付回 `completed`；受理了、之后交付回 `selected`；方案已不可选回 `failed` |
+
+`action.invoke` 一样要按 `idempotency_key` 去重：同一个键再来，回第一次的 `accepted`，不要再建一个任务。
+
+取消的规则：
+
+- 回 `cancelled` 之后，这一单不能再发改状态的回调（`completed`、`failed`、`proposal.*`）。
+- 回 `cancel_failed` 时订单保持原状态，用户会被告知撤不回。超时引起的会顺延一次，你可以在顺延期内交付。
+- 同一个 `task.cancel` 再来，回同样的结果。
+
+## 回调
+
+```text
+POST https://relay.newbeeai.online/v1/callbacks/{order_id}
+X-Relay-Signature: t=…,v1=…        用同一个 secret 对原始请求体签名
+```
+
+| 事件 | 字段 | 什么时候发 |
+|---|---|---|
+| `completed` | `output` | 任务完成；多方案在用户选定、交付之后 |
+| `failed` | `error` | 任务失败 |
+| `proposal.add` | `proposal` | 多方案：每来一个方案发一次 |
+| `proposal.withdraw` | `proposal_id`、`reason?` | 方案撤回。已选的方案被撤回时，订单回到「方案待选」，用户可以再选 |
+| `cancel_failed` | `reason?` | 收到 `task.cancel` 时已撤不回（没有在响应里直接回 `cancel_failed` 时用） |
+| `order.dispute` | `reason` | 对已扣费的订单有异议，扣费后 72 小时内，见[计费与结算](billing.md) |
+
+- 每个事件带 `event_id`，你生成。Relay 按 `(order_id, type, event_id)` 去重，重复发是安全的。
+- 收到 5xx 或超时，用**同一个** `event_id` 退避重发。进程重启后还要重发的，把 `event_id` 存下来。
+- Relay 回 200 表示收下（含重复事件）；401 验签失败；404 订单不存在；409 订单已是终态，事件只记录；422 事件不合 Schema、路径和请求体的 `order_id` 不一致，或订单当前状态不接受这个事件。401、404、409、422 都不要重发。
+- 没有回调能力也能接：只实现 `task.poll`，Relay 按 1、2、5、15 分钟补拉，用户会多等一会儿。
+
+方案（`proposal`）的结构：`proposal_id`、`title`（给人看，1–200 字）、`content`（和 `completed` 的 `output` 一样是 `data` + `parts`），可选 `price_cents`（方案报价，用户选它时和用户的单笔上限比较）和 `eta_days`。
+
+## 用 Node SDK
+
+```ts
+import { RelayCallbackClient, accepted, cancelled, cancelFailed, completed, createRelayHandler, pending, toNodeHandler } from "@dreamcavy/ai-relay-sdk";
+
+const callbacks = new RelayCallbackClient({ secret: process.env.RELAY_SECRET! });
+
+const relay = createRelayHandler({
+  secrets: [process.env.RELAY_SECRET!],
+  manifest,
+  handlers: {
+    publish_article: async (input, ctx) => {
+      const job = await jobs.create({ relayOrderId: ctx.orderId, input });  // 存库，别只放内存
+      return accepted(job.id, 600);
+    },
+  },
+  tasks: {
+    poll: async ({ task_id }) => {
+      const job = await jobs.get(task_id);
+      return job.done ? completed({ article_url: job.url }) : pending(300);
+    },
+    cancel: async ({ task_id }) => ((await jobs.tryCancel(task_id)) ? cancelled() : cancelFailed("文章已发出")),
+  },
+});
+
+// 任务做完时（在你的队列或后台进程里）
+await callbacks.completed(job.relayOrderId, completed({ article_url: job.url }).output);
+```
+
+多方案再加 `tasks.select`，方案用 `callbacks.addProposal(orderId, proposal("p1", "方案一", { … }, { priceCents: 300000 }))` 推送，撤回用 `callbacks.withdrawProposal(orderId, "p1", "对方已撤回")`。回调客户端会签名、生成 `event_id`、在 5xx 和超时时用同一个 `event_id` 重发，见 [Node SDK README](../../packages/sdk-node/README.md)。
+
+## 用 Python SDK
+
+```python
+from ai_relay_sdk import RelayCallbackClient, RelayHandler, accepted, cancel_failed, cancelled, completed, pending
+
+callbacks = RelayCallbackClient(secret=os.environ["RELAY_SECRET"].split(",")[0])
+
+def publish_article(data, ctx):
+    job = jobs.create(relay_order=ctx.order_id, data=data)   # 存库
+    return accepted(job.id, eta_seconds=600)
+
+def task_poll(envelope):
+    job = jobs.get(envelope["task_id"])
+    return completed({"article_url": job.url}) if job.done else pending(eta_seconds=300)
+
+def task_cancel(envelope):
+    return cancelled() if jobs.try_cancel(envelope["task_id"]) else cancel_failed("文章已发出")
+
+relay = RelayHandler(
+    secrets=os.environ["RELAY_SECRET"].split(","), manifest="manifest.json",
+    actions={"publish_article": publish_article}, task_poll=task_poll, task_cancel=task_cancel,
+)
+
+# 任务做完时
+callbacks.completed(job.relay_order, {"article_url": job.url})
+```
+
+多方案用 `proposal_select=` 处理选定，`callbacks.proposal_add(order_id, proposal(...))` 推送方案。完整可运行的例子：[summarizer.py](../../packages/sdk-python/examples/summarizer.py)。
+
+## 自测
+
+接入验收工具会跟着每个异步动作走到最终结果，再另下一单测取消。本机起一个回调接收端，把你的产品发回调的根地址临时指到它：
+
+```sh
+npx @dreamcavy/ai-relay-conformance --manifest manifest.json \
+  --endpoint http://127.0.0.1:8787/relay --inputs inputs.json --callback-port 8788
+# 回调接收端：http://127.0.0.1:8788/v1/callbacks/{order_id}
+```
+
+多方案会先用一个不存在的 `proposal_id` 选一次（必须回 `failed`），再选第一个有效方案。后台的在线验收用 Relay 的真实回调地址收验收订单，不计费。检查项和参数见 [Conformance README](../../packages/conformance/README.md)。
+
+完整的状态和规则见[规范第 7 节（回调）](../protocol/rsp-1.0.md#7-回调供给方--relay)和[第 12 节（订单与计费）](../protocol/rsp-1.0.md#12-订单与计费供给方视角)。
+
+## 文件：docs/integrate/binding.md
+
+# 账号绑定
+
+你的产品要知道「这是我们哪个用户」才能办事时（用他的账号发文章、扣他的会员额度、看他的订单），在清单里打开账号绑定。不需要的话写 `"user_binding": "none"`，靠输入字段识别用户就行，比如手机号（标 `"x-pii": true`）。
+
+| `supplier.user_binding` | 用户怎么绑 | 信封里的 `user.supplier_user_ref` |
+|---|---|---|
+| `none` | 不绑 | `null` |
+| `token` | 在你的产品里生成一次性绑定码，粘贴到 Relay | 你在绑定时返回的账号标识 |
+| `oauth` | 协议预留，目前不接受 | — |
+
+## 你要做的两件事
+
+1. **一个生成绑定码的页面**，在你的产品里，用户登录后能打开。地址填到清单的 `supplier.binding.help_url`（必须 `https://`），还可以在 `instructions` 里写一句给用户看的说明（500 字以内）。绑定码应当一次性、10 分钟内有效，库里只存哈希，长度 4–128 个字符。
+2. **处理 `binding.verify` 信封**：核对绑定码，有效就记下 `relay_uid` 和你的账号的对应关系，回 `bound`；无效、过期、用过了回 `failed`（一般用 `unauthorized`）。
+
+```json
+{
+  "supplier": {
+    "user_binding": "token",
+    "binding": {
+      "help_url": "https://shop.example.com/settings/ai-relay",
+      "instructions": "在「设置 → AI Relay」生成一次性绑定码，粘贴到 Relay。"
+    }
+  }
+}
+```
+
+```jsonc
+// Relay 发来
+{ "type": "binding.verify", "rsp": "1.0", "issued_at": "…", "relay_uid": "u_…", "code": "K7Q2-M9XP" }
+// 你返回
+{ "status": "bound", "supplier_user_ref": "user_10086", "display_name": "小李" }
+```
+
+`supplier_user_ref` 是你那边的账号标识，最长 256 个字符，之后每次 `action.invoke` 都会原样带在 `user.supplier_user_ref` 里。`display_name` 可选，Relay 页面上显示「已绑定为小李」。
+
+同一个用户重发同一个码时可以再回 `bound`（Relay 网络重试会这样）；别的用户拿同一个码来，回 `failed`。
+
+## 用户那边发生什么
+
+1. 用户让 AI 调你的动作，还没绑定时，AI 收到 `binding_required` 和一个 Relay 的绑定链接。
+2. 用户打开链接，Relay 页面上有你的说明和「打开绑定页面」按钮（就是 `help_url`）。
+3. 用户在你的产品里生成绑定码，粘贴回 Relay。Relay 发 `binding.verify`，你回 `bound`。
+4. 用户回到 AI 重试，这次信封里带上了 `supplier_user_ref`。
+
+用户随时可以在 Relay 的「账号绑定」页解绑。你这边解绑或账号失效时，对 `action.invoke` 回 `unauthorized`：Relay 把这个用户的绑定标为失效，这一笔 AI 收到 `binding_invalid`，下次调用重新走绑定。
+
+`user.relay_uid` 是按供给方派生的假名：同一个用户在不同供给方看到的值不同，供给方之间拼不出用户画像。用它做绑定关系的键，别拿它当跨产品的用户 ID。
+
+## 用 SDK
+
+```ts
+// Node
+const relay = createRelayHandler({
+  secrets, manifest, handlers,
+  binding: {
+    verify: async ({ relay_uid, code }) => {
+      const account = await bindingCodes.consume(code, relay_uid);   // 一次性；同一个 relay_uid 重发可以再成功
+      return account ? bound(account.id, account.nickname) : failed("unauthorized", "绑定码无效或已过期");
+    },
+  },
+});
+// 动作里：ctx.user.supplier_user_ref
+```
+
+```python
+# Python
+def binding_verify(envelope):
+    account = binding_codes.consume(envelope["code"], envelope["relay_uid"])
+    return bound(account.id, account.nickname) if account else failed("unauthorized", "绑定码无效或已过期")
+
+relay = RelayHandler(secrets=..., manifest="manifest.json", actions=..., binding_verify=binding_verify)
+# 动作里：ctx.user["supplier_user_ref"]
+```
+
+## 自测
+
+接入验收工具先用一个编造的绑定码发 `binding.verify`（必须回 `failed`）。再在你的产品里生成一个真绑定码，用 `--binding-code` 传进去：工具用它绑定，之后所有动作都带着绑定得到的账号调用，最后换一个用户用同一个码再绑一次（应当回 `failed`）。
+
+```sh
+npx @dreamcavy/ai-relay-conformance --manifest manifest.json --endpoint http://127.0.0.1:8787/relay \
+  --inputs inputs.json --binding-code K7Q2-M9XP
+```
+
+不方便每次生成绑定码时，用 `--supplier-user-ref user_test` 直接给一个测试账号。后台在线验收会让你填一个绑定码，用法相同，不保存。
+
+规范原文见[第 11 节](../protocol/rsp-1.0.md#11-账号绑定)。
+
+## 文件：docs/integrate/billing.md
+
+# 计费与结算
+
+Relay 按成交的订单向你收手续费，从你的预付余额里扣。用户付给你的钱照旧走你自己的收款渠道，Relay 不经手。**你的代码不做任何计费动作**：什么时候扣、扣多少、退不退，都由 Relay 按清单和订单状态算。
+
+## 两笔钱：`fee` 和 `amount`
+
+| 字段 | 谁付给谁 | 用来做什么 |
+|---|---|---|
+| `fee` | 你付给 Relay 的手续费，整数分 | 到计费点从你的余额里扣。收费动作 100–10000 分（¥1–¥100）每笔，不收费的动作写 0 |
+| `amount` | 用户在这笔交易里付给你的钱 | 只用来和用户给 AI 设的单笔上限比较，Relay 不收这笔钱 |
+
+`amount` 三种写法：`"none"`（没有用户金额）、固定整数分、`{"from": "input.<字段>"}`（取输入里的字段，这个字段必须是必填的 `integer`，单位分）。收到下单请求后，核对 `amount` 对应的字段和你的真实价格一致，对不上回 `invalid_input`。
+
+用户给每个 AI 的默认授权是：最高中风险、单笔 ¥200、每笔确认。金额超过上限的调用会被拒绝，用户被引导去授权页调高；多方案的选方案一步用方案的 `price_cents` 比较。
+
+## 什么时候扣
+
+| 清单 `billing` | 扣费时刻 |
+|---|---|
+| `on_complete` | Relay 收到 `completed`（同步响应或回调）的同一个事务里 |
+| `on_accept` | 收到 `accepted` 时，只用于异步动作 |
+| `none` | 不扣 |
+
+- 每单最多扣一次。重复的响应、重复的回调、补拉拿到的同一个结果都不会再扣。
+- 失败、取消、过期的订单不扣费，也不产生流水。`on_accept` 不推荐使用：接单时先扣，按规范之后失败、取消、过期也不该收费（自动退回还在实现中），新接入请用 `on_complete`。
+- 结果未知的订单（发出后 5xx 或超时）先不扣，进「待核对」，管理员核对后按 `billing` 补扣或标失败。
+- `fee` 在建单时记进订单。之后改清单不影响在途订单。
+
+## 余额
+
+- 后台「余额与流水」看当前余额和每一笔流水，每笔扣费对应一个订单号，可以按月导出 CSV。
+- 目前充值由管理员手工入账：联系管理员充值，管理员按付款凭证加余额并写一笔充值流水。
+- 余额低于你最高的单笔手续费时，收费动作从搜索结果里隐藏；进行中的异步订单照常完成。
+- 余额低于提醒线时，后台提示并给联系邮箱发邮件。提醒线是最高单笔手续费的 20 倍，至少 ¥50。
+
+## 争议与退款
+
+觉得某一单不该扣费（比如用户没到店、重复下单），在扣费后 72 小时内提异议：在后台「争议」里选订单写原因，或者发 `order.dispute` 回调（见 [L2](l2.md#回调)）。管理员看订单的完整事件时间线和双方说法后裁定：退款（不超过这一单扣的手续费，写退款流水）或驳回，都会写原因。
+
+## 质量与暂停
+
+后台「质量」页每 5 分钟更新一次指标，也影响你在搜索里的排序。最近 24 小时有 20 单以上时，成功率低于 80%、超时率高于 20%、首次应答 p95 超过 30 秒任一条成立，供给方会被自动暂停：搜索里看不到你的动作，进行中的订单照常。修好后联系管理员恢复。争议率（最近 7 天）连续一个月高于 10% 时进人工复核。用户取消、没选方案、`not_available` 这类业务结果不算你的失败。
+
+规范原文见[第 12 节](../protocol/rsp-1.0.md#12-订单与计费供给方视角)。设计原因见 [ADR-005 完成时计费](../adr/005-billing-on-complete.md)和 [ADR-008 手续费与用户金额分开](../adr/008-fee-and-amount.md)。
+
+## 文件：docs/integrate/l0.md
+
+# L0：从 OpenAPI 导入（零代码）
+
+你已经有一套 REST 接口和 OpenAPI 文档时，可以不写任何代码：在后台导入文档，勾选要开放的接口，Relay 的托管适配器替你实现 `POST /relay`，把 AI 的调用转成对你接口的 HTTP 请求。1–2 小时能上线。
+
+适合：动作都能当场给结果（同步），请求和响应都是 JSON。不适合：要异步、多方案或[账号绑定](binding.md)的产品，这些请用 [L1](l1.md) 或 [L2](l2.md) 自己实现端点。
+
+## 步骤
+
+1. 在供给方后台打开「从 OpenAPI 导入」，粘贴 OpenAPI 3.0 或 3.1 文档（JSON 或 YAML）。
+2. 列表里勾选要开放的操作，按需改动作名、风险和手续费。不能开放的操作会标出原因。
+3. 填接口根地址（比如 `https://api.example.com/v1`）和鉴权凭据。凭据可以放在请求头（比如 `Authorization: Bearer …`）或查询参数里，最多 10 条，加密保存，后台不再显示明文。
+4. 生成清单草稿。它和手写的清单一样：可以在编辑器里改描述、元数据和样例输入，然后在线验收、提交审核（见[接入总览](README.md#从注册到上线)）。
+
+清单的端点会自动设成 Relay 的托管适配器 `https://relay.newbeeai.online/v1/l0/<你的 supplier_id>`，不用你部署任何东西。
+
+## 文档怎么变成动作
+
+- 每个操作一个动作。路径参数、查询参数、请求头参数和 JSON 请求体的字段摊平成动作的 `input`；请求体字段和参数重名时，整个请求体放在 `body` 字段里。
+- 成功响应的 Schema 变成 `output`；响应不是对象时包在 `result` 字段里。
+- 只认文档内的 `$ref`，循环引用放宽成 `{}`。3.0 的 `nullable`、布尔 `exclusiveMinimum`、`example` 会转写成 2020-12 的写法。`readOnly` 字段不进 `input`。
+- `summary`、`description` 变成动作的标题和说明，这是 AI 选动作的依据，导入后值得在编辑器里改得具体一些。
+- 不能开放：表单或文件上传的请求体、必填的 cookie 参数、标了 `deprecated` 的操作。
+- 样例输入从文档的 `example`、`default`、`enum` 里凑；凑不齐的动作会提示你到编辑器补上，否则在线验收会是「未测」。
+
+默认元数据（都可以改）：
+
+| 方法 | 风险 | 确认 | 手续费 |
+|---|---|---|---|
+| GET | 低，只读 | 不确认 | 不收费 |
+| POST、PUT、PATCH | 中 | 按用户授权 | ¥1 |
+| DELETE | 高 | 每次确认 | ¥1 |
+
+用户金额 `amount` 默认是 `"none"`。下单类接口有金额字段的话，到编辑器里改成 `{"from": "input.<字段>"}`，见[计费与结算](billing.md)。
+
+## 你的接口会收到什么
+
+- 按导入的映射拼出的请求，带上你配的凭据和这几个请求头：`Idempotency-Key: <订单号>`、`X-Relay-Order-Id: <订单号>`、`User-Agent: AI-Relay-L0/1.0`。
+- 超时 50 秒，不跟随跳转，只访问公网 HTTPS 地址。
+
+响应怎么翻译：
+
+| 你的接口返回 | AI 看到 |
+|---|---|
+| 2xx | 完成，响应体作为 `data` |
+| 400、422 | `invalid_input` |
+| 401、403 | `permanent`（请检查凭据） |
+| 404、409、410 | `not_available` |
+| 429 | `rate_limited` |
+| 5xx、408、超时：GET | `temporary`，可以重试 |
+| 5xx、408、超时：写操作 | **结果未知**：不扣费，订单进「待核对」，管理员核对后可能用同一个 `Idempotency-Key` 重新调一次 |
+
+写操作的接口请按 `Idempotency-Key` 去重：同一个键再来时返回第一次的结果，不要再办一次。适配器自己也按订单号记下了最终结果，重放不会再调你的接口；但结果未知的那一笔，后台核对时会重新调用。
+
+## 之后改动
+
+- 每个清单版本有自己的根地址和凭据。导入新草稿换地址或凭据，不影响已上线的版本。
+- 只改描述或元数据：在编辑器里另存新版本就行，沿用最近一次导入的映射。改动作名要重新导入。
+
 ## 文件：docs/protocol/rsp-1.0.md
 
 # RSP 1.0：Relay Supplier Protocol

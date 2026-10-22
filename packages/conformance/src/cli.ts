@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { formatCheck, formatHeader, formatSummary } from "./report.js";
 import { RSP_VERSION } from "@dreamcavy/ai-relay-protocol";
+import { type CallbackReceiver, startCallbackReceiver } from "./receiver.js";
 import { runConformance, TOOL } from "./run.js";
 import type { Check, ConformanceOptions } from "./types.js";
 
@@ -20,6 +21,17 @@ const USAGE = `用法：conformance --manifest manifest.json --secret <secret> [
   --timeout <毫秒>      单个请求超时，默认 60000
   --time-zone <时区>    {{$today}} 按哪个时区算，默认本机时区
   --allow-zero-fee      允许收费动作 fee=0（只给 Relay 自营的沙箱用，正式入驻不接受）
+
+异步动作（mode 为 async、async_multi）：
+  --callback-port <端口>  本机起回调接收端，供给方把回调发到 http://<地址>:<端口>/v1/callbacks/{order_id}；
+                          不给时不验回调，只靠 task.poll
+  --callback-host <地址>  接收端监听的地址，默认 127.0.0.1；供给方在另一台机器上时用 ::（监听所有地址）
+  --callback-url <URL>    提示给供给方的回调根地址（比如内网穿透的公网地址），默认 http://<地址>:<端口>
+  --binding-code <码>     user_binding=token 的供给方：在你的产品里生成的一次性绑定码
+  --supplier-user-ref <账号> 不走绑定，直接用这个测试账号作为 supplier_user_ref 调用动作
+  --async-timeout <秒>    每个异步动作等最终结果的上限，默认 120
+  --poll-interval <秒>    task.poll 间隔，默认 3
+  --no-cancel             不测 task.cancel（默认每个异步动作额外下一单并立刻取消）
   --json                输出机器可读的 JSON 报告
   -h, --help            显示这段说明
 
@@ -40,6 +52,14 @@ async function main(argv: string[]): Promise<number> {
         timeout: { type: "string" },
         "time-zone": { type: "string" },
         "allow-zero-fee": { type: "boolean" },
+        "callback-port": { type: "string" },
+        "callback-host": { type: "string" },
+        "callback-url": { type: "string" },
+        "binding-code": { type: "string" },
+        "supplier-user-ref": { type: "string" },
+        "async-timeout": { type: "string" },
+        "poll-interval": { type: "string" },
+        "no-cancel": { type: "boolean" },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
@@ -76,6 +96,21 @@ async function main(argv: string[]): Promise<number> {
     if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) return usageError("--timeout 必须是正整数（毫秒）");
   }
 
+  const seconds = (flag: string, value: string | undefined): number | string | undefined => {
+    if (value === undefined) return undefined;
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 1000) : `${flag} 必须是正数（秒）`;
+  };
+  const asyncTimeoutMs = seconds("--async-timeout", values["async-timeout"]);
+  if (typeof asyncTimeoutMs === "string") return usageError(asyncTimeoutMs);
+  const pollIntervalMs = seconds("--poll-interval", values["poll-interval"]);
+  if (typeof pollIntervalMs === "string") return usageError(pollIntervalMs);
+  let callbackPort: number | undefined;
+  if (values["callback-port"] !== undefined) {
+    callbackPort = Number(values["callback-port"]);
+    if (!Number.isInteger(callbackPort) || callbackPort < 0 || callbackPort > 65535) return usageError("--callback-port 必须是 0–65535 的整数");
+  }
+
   if (values["time-zone"] !== undefined) {
     try {
       new Intl.DateTimeFormat("en-CA", { timeZone: values["time-zone"] });
@@ -88,6 +123,23 @@ async function main(argv: string[]): Promise<number> {
   const color = !json && process.stdout.isTTY === true && !process.env.NO_COLOR;
   const endpoint = values.endpoint ?? endpointOf(manifest);
   if (!json) process.stdout.write(`${formatHeader({ tool: TOOL, rsp: RSP_VERSION, endpoint })}\n\n`);
+
+  let receiver: CallbackReceiver | undefined;
+  if (callbackPort !== undefined) {
+    try {
+      receiver = await startCallbackReceiver({
+        secrets: oldSecret ? [secret, oldSecret] : [secret],
+        port: callbackPort,
+        ...(values["callback-host"] ? { host: values["callback-host"] } : {}),
+        ...(values["callback-url"] ? { publicUrl: values["callback-url"] } : {}),
+      });
+    } catch (error) {
+      return usageError(`回调接收端起不来：${(error as Error).message}`);
+    }
+    // --json 时 stdout 只放报告，提示写到 stderr。
+    (json ? process.stderr : process.stdout).write(`回调接收端：${receiver.url}/v1/callbacks/{order_id}（请把供给方的回调地址指到这里）\n\n`);
+  }
+
   const report = await runConformance({
     manifest,
     secret,
@@ -98,9 +150,16 @@ async function main(argv: string[]): Promise<number> {
     ...(timeoutMs ? { timeoutMs } : {}),
     ...(values["time-zone"] ? { timeZone: values["time-zone"] } : {}),
     ...(values["allow-zero-fee"] ? { policy: { allowZeroFee: true } } : {}),
+    ...(receiver ? { callbacks: receiver.store, callbackUrl: receiver.url } : {}),
+    ...(values["binding-code"] ? { bindingCode: values["binding-code"] } : {}),
+    ...(values["supplier-user-ref"] ? { supplierUserRef: values["supplier-user-ref"] } : {}),
+    ...(asyncTimeoutMs ? { asyncTimeoutMs } : {}),
+    ...(pollIntervalMs ? { pollIntervalMs } : {}),
+    ...(values["no-cancel"] ? { testCancel: false } : {}),
     ...(json ? {} : { onCheck: (check: Check) => void process.stdout.write(`${formatCheck(check, { color })}\n`) }),
   });
 
+  await receiver?.close();
   if (json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   else process.stdout.write(`\n${formatSummary(report, { color })}\n`);
   return report.ok ? 0 : 1;
