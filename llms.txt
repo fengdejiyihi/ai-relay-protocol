@@ -29,9 +29,9 @@
 
 ## 完成标准
 
-- 接入验收工具 `@ai-relay/conformance` 全部通过（开发中；发布前按沙箱端到端测试的清单自测）
+- 接入验收工具 `@dreamcavy/ai-relay-conformance` 全部通过（开发中；发布前按沙箱端到端测试的清单自测）
 
 ## Optional
 
 - [设计决定 ADR](docs/adr/README.md)
-- [TypeScript 协议包](packages/protocol/README.md)：Node 项目可直接 `npm install @ai-relay/protocol` 用它校验和签名
+- [TypeScript 协议包](packages/protocol/README.md)：Node 项目可直接 `npm install @dreamcavy/ai-relay-protocol` 用它校验和签名

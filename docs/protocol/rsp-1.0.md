@@ -2,7 +2,7 @@
 
 | 项 | 值 |
 |---|---|
-| 状态 | 候选定稿（对应 `@ai-relay/protocol` 1.0.0-rc），审定后转为定稿 |
+| 状态 | 候选定稿（对应 `@dreamcavy/ai-relay-protocol` 1.0.0-rc），审定后转为定稿 |
 | 版本 | 1.0 |
 | 日期 | 2026-10-22 |
 | 机器可读定义 | [`packages/protocol/schemas/`](../../packages/protocol/schemas/)，本文与 Schema 不一致时以 Schema 为准 |
@@ -72,7 +72,7 @@ v1 = HMAC-SHA256(secret, t + "." + 原始请求体)
 - **轮换**：在后台轮换 secret 后，新旧 secret 并存 24 小时。Relay 用新 secret 签名；接收方应当依次用新、旧 secret 验证。头部可以带多个 `v1=`，任一匹配即通过。
 - 供给方可以额外配置 Relay 固定出口 IP 白名单，但不能替代验签。
 
-参考实现：`@ai-relay/protocol` 的 `signBody` 与 `verifySignature`。附录 A 有可复算的样例。
+参考实现：`@dreamcavy/ai-relay-protocol` 的 `signBody` 与 `verifySignature`。附录 A 有可复算的样例。
 
 ## 4. 清单（Manifest）
 
@@ -162,7 +162,7 @@ Schema 之外，Relay 还检查以下规则。有错误的清单不能激活；�
 
 ## 5. 下行信封（Relay → 供给方）
 
-Schema：[`downstream.json`](../../packages/protocol/schemas/downstream.json)。所有信封都有 `type`、`rsp`、`issued_at`。Relay 只发 Schema 里定义的字段；供给方必须忽略不认识的字段，并接受任何 `1.x` 的 `rsp`（见第 14 节）。供给方遇到不认识的 `type` 必须返回 `{"status":"failed","error":{"code":"not_supported"}}`。用 `@ai-relay/protocol` 的 `validateDownstream` 校验时默认就是这个行为，不认识的 `type` 会报规则 `D-TYPE-1`。
+Schema：[`downstream.json`](../../packages/protocol/schemas/downstream.json)。所有信封都有 `type`、`rsp`、`issued_at`。Relay 只发 Schema 里定义的字段；供给方必须忽略不认识的字段，并接受任何 `1.x` 的 `rsp`（见第 14 节）。供给方遇到不认识的 `type` 必须返回 `{"status":"failed","error":{"code":"not_supported"}}`。用 `@dreamcavy/ai-relay-protocol` 的 `validateDownstream` 校验时默认就是这个行为，不认识的 `type` 会报规则 `D-TYPE-1`。
 
 | type | 什么时候发 | 关键字段 | 允许的响应 status | 谁要实现 |
 |---|---|---|---|---|

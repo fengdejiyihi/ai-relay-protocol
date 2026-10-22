@@ -10,7 +10,7 @@ importers:
 
   apps/sandbox-shop:
     dependencies:
-      '@ai-relay/protocol':
+      '@dreamcavy/ai-relay-protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
     devDependencies:

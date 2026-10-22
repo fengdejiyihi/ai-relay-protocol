@@ -7,7 +7,7 @@ import {
   type Manifest,
   signBody,
   validateResponse,
-} from "@ai-relay/protocol";
+} from "@dreamcavy/ai-relay-protocol";
 import { expect } from "vitest";
 import { createShop, type Shop } from "../src/index.js";
 

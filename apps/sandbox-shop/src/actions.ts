@@ -1,4 +1,4 @@
-import type { ActionInvokeEnvelope, CompletedResponse, ErrorCode, FailedResponse, Part } from "@ai-relay/protocol";
+import type { ActionInvokeEnvelope, CompletedResponse, ErrorCode, FailedResponse, Part } from "@dreamcavy/ai-relay-protocol";
 import { SERVICES, type ServiceId } from "./catalog.js";
 import type { Booking, ShopStore } from "./store.js";
 import { humanTime } from "./time.js";

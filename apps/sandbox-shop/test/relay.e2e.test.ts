@@ -1,4 +1,4 @@
-import { DOWNSTREAM_TYPES, HEADERS, signBody, validateResponse } from "@ai-relay/protocol";
+import { DOWNSTREAM_TYPES, HEADERS, signBody, validateResponse } from "@dreamcavy/ai-relay-protocol";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { BASE_URL, expectValid, type Harness, invoke, OLD_SECRET, orderId, send, startShop } from "./helpers.js";
 

@@ -7,7 +7,7 @@ import {
   RSP_VERSION,
   validateDownstream,
   verifySignature,
-} from "@ai-relay/protocol";
+} from "@dreamcavy/ai-relay-protocol";
 import { ACTIONS, type ActionResponse, failed } from "./actions.js";
 import type { ShopStore } from "./store.js";
 

@@ -1,4 +1,4 @@
-# 推 tag protocol-v<版本> 时把 @ai-relay/protocol 发到 npm。
+# 推 tag protocol-v<版本> 时把 @dreamcavy/ai-relay-protocol 发到 npm。
 # 用 npm 可信发布（OIDC），不存 token；需要先在 npmjs.com 把包绑定到本仓库和本文件。
 name: release
 

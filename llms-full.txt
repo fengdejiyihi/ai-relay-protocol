@@ -7,7 +7,7 @@
 
 | 项 | 值 |
 |---|---|
-| 状态 | 候选定稿（对应 `@ai-relay/protocol` 1.0.0-rc），审定后转为定稿 |
+| 状态 | 候选定稿（对应 `@dreamcavy/ai-relay-protocol` 1.0.0-rc），审定后转为定稿 |
 | 版本 | 1.0 |
 | 日期 | 2026-10-22 |
 | 机器可读定义 | [`packages/protocol/schemas/`](../../packages/protocol/schemas/)，本文与 Schema 不一致时以 Schema 为准 |
@@ -77,7 +77,7 @@ v1 = HMAC-SHA256(secret, t + "." + 原始请求体)
 - **轮换**：在后台轮换 secret 后，新旧 secret 并存 24 小时。Relay 用新 secret 签名；接收方应当依次用新、旧 secret 验证。头部可以带多个 `v1=`，任一匹配即通过。
 - 供给方可以额外配置 Relay 固定出口 IP 白名单，但不能替代验签。
 
-参考实现：`@ai-relay/protocol` 的 `signBody` 与 `verifySignature`。附录 A 有可复算的样例。
+参考实现：`@dreamcavy/ai-relay-protocol` 的 `signBody` 与 `verifySignature`。附录 A 有可复算的样例。
 
 ## 4. 清单（Manifest）
 
@@ -167,7 +167,7 @@ Schema 之外，Relay 还检查以下规则。有错误的清单不能激活；�
 
 ## 5. 下行信封（Relay → 供给方）
 
-Schema：[`downstream.json`](../../packages/protocol/schemas/downstream.json)。所有信封都有 `type`、`rsp`、`issued_at`。Relay 只发 Schema 里定义的字段；供给方必须忽略不认识的字段，并接受任何 `1.x` 的 `rsp`（见第 14 节）。供给方遇到不认识的 `type` 必须返回 `{"status":"failed","error":{"code":"not_supported"}}`。用 `@ai-relay/protocol` 的 `validateDownstream` 校验时默认就是这个行为，不认识的 `type` 会报规则 `D-TYPE-1`。
+Schema：[`downstream.json`](../../packages/protocol/schemas/downstream.json)。所有信封都有 `type`、`rsp`、`issued_at`。Relay 只发 Schema 里定义的字段；供给方必须忽略不认识的字段，并接受任何 `1.x` 的 `rsp`（见第 14 节）。供给方遇到不认识的 `type` 必须返回 `{"status":"failed","error":{"code":"not_supported"}}`。用 `@dreamcavy/ai-relay-protocol` 的 `validateDownstream` 校验时默认就是这个行为，不认识的 `type` 会报规则 `D-TYPE-1`。
 
 | type | 什么时候发 | 关键字段 | 允许的响应 status | 谁要实现 |
 |---|---|---|---|---|
@@ -1504,7 +1504,7 @@ Relay 沙箱理发店：AI Relay 自营的到店预约商家，也是 **RSP 1.0 
 - SQLite 单文件，预置 7 天时段，每天滚动（北京时间零点后第一次访问时删掉过去的日期、补上新的一天，未来的预约保留）
 - 每个结果返回 `data` + `parts`（markdown + link）
 
-不依赖任何 Web 框架，运行时依赖只有 `@ai-relay/protocol`。SQLite 用 Node 自带的 `node:sqlite`（Node ≥ 22.13 无需开关），不需要编译原生模块。
+不依赖任何 Web 框架，运行时依赖只有 `@dreamcavy/ai-relay-protocol`。SQLite 用 Node 自带的 `node:sqlite`（Node ≥ 22.13 无需开关），不需要编译原生模块。
 
 如果你是要接入 Relay 的产品方，下面的教程就是给你的：照着沙箱的代码走一遍，一个下午能把自己的产品接成 L1。
 
@@ -1529,7 +1529,7 @@ L1 = 一个端点 + 一份清单，能接全部同步动作（RSP 1.0 第 13 节
 `low` 风险只能用于 `billing: "none"` 且 `readonly: true` 的动作。手机号这类个人信息在 Schema 里标 `"x-pii": true`。写完用协议包校验：
 
 ```ts
-import { validateManifest } from "@ai-relay/protocol";
+import { validateManifest } from "@dreamcavy/ai-relay-protocol";
 const result = validateManifest(JSON.parse(readFileSync("manifest.json", "utf8")));
 if (!result.ok) console.error(result.errors);
 ```
@@ -1541,7 +1541,7 @@ if (!result.ok) console.error(result.errors);
 Relay 发来的每个请求都带 `X-Relay-Signature: t=<秒>,v1=<hex>`。**用收到的原始请求体字节验**（`Buffer.concat` 拼好直接传），不要逐块解码，也不要先 `JSON.parse` 再序列化。
 
 ```ts
-import { verifySignature } from "@ai-relay/protocol";
+import { verifySignature } from "@dreamcavy/ai-relay-protocol";
 const verified = verifySignature({ secrets: [newSecret, oldSecret], header, body: rawBody });
 if (!verified.ok) return reply(401, { status: "failed", error: { code: "unauthorized" } });
 ```
@@ -1615,14 +1615,14 @@ RELAY_SECRETS=whsec_local_dev pnpm --filter @ai-relay/sandbox-shop start
 
 ```sh
 node --input-type=module -e '
-const { signBody } = await import("@ai-relay/protocol");
+const { signBody } = await import("@dreamcavy/ai-relay-protocol");
 const body = JSON.stringify({ type: "ping", rsp: "1.0", issued_at: Math.floor(Date.now()/1000), challenge: "hello-relay-sandbox" });
 const res = await fetch("http://127.0.0.1:8787/relay", { method: "POST", body, headers: { "X-Relay-Signature": signBody("whsec_local_dev", body) } });
 console.log(res.status, await res.text());
 '
 ```
 
-（在 `apps/sandbox-shop` 目录下执行，才能解析到 `@ai-relay/protocol`。）
+（在 `apps/sandbox-shop` 目录下执行，才能解析到 `@dreamcavy/ai-relay-protocol`。）
 
 ### 配置
 

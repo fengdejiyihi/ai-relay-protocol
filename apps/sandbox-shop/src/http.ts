@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { HEADERS, RSP_VERSION } from "@ai-relay/protocol";
+import { HEADERS, RSP_VERSION } from "@dreamcavy/ai-relay-protocol";
 import { maskPhone } from "./actions.js";
 import { SERVICES } from "./catalog.js";
 import type { RelayReply } from "./relay.js";

@@ -13,7 +13,7 @@
 - TypeScript 类型手写在 `src/types.ts`，由测试保证与 Schema 的枚举和结构一致；不一致时以 Schema 为准。
 - 协议包只依赖 Ajv 和 ajv-formats，不依赖任何业务包。
 - Schema 之外的规则（比如 low 必须只读）写成编号的语义规则（M-*），与平台审核策略（P-*）分开：前者决定协议是否有效，后者是 Relay 的商业规则，可以单独调整。
-- 其他包一律从 `@ai-relay/protocol` 导入枚举、时限和上限，不得重新定义。
+- 其他包一律从 `@dreamcavy/ai-relay-protocol` 导入枚举、时限和上限，不得重新定义。
 - 协议改动只在协议包里做，并配一份 ADR 或在规范里记修订。
 
 ## 后果

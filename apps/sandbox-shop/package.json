@@ -21,7 +21,7 @@
     "dev": "pnpm build && pnpm start"
   },
   "dependencies": {
-    "@ai-relay/protocol": "workspace:*"
+    "@dreamcavy/ai-relay-protocol": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

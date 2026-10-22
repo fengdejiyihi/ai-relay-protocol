@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { Server } from "node:http";
-import { type Manifest, validateManifest } from "@ai-relay/protocol";
+import { type Manifest, validateManifest } from "@dreamcavy/ai-relay-protocol";
 import type { ShopConfig } from "./config.js";
 import { createHttpServer } from "./http.js";
 import { createRelayHandler } from "./relay.js";

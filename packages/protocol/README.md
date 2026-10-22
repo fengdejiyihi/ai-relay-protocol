@@ -1,4 +1,4 @@
-# @ai-relay/protocol
+# @dreamcavy/ai-relay-protocol
 
 RSP 1.0（Relay Supplier Protocol）与 Relay MCP 1.0 的单一真相源。供给方 SDK、沙箱商家、Relay 应用都引用这里，不各自定义。
 
@@ -14,7 +14,7 @@ RSP 1.0（Relay Supplier Protocol）与 Relay MCP 1.0 的单一真相源。供�
 | 判定辅助 | `effectiveConfirm`、`effectiveRisk`、`resolveAmount`、`piiFields` |
 
 ```ts
-import { validateManifest, verifySignature } from "@ai-relay/protocol";
+import { validateManifest, verifySignature } from "@dreamcavy/ai-relay-protocol";
 ```
 
 `validateDownstream`、`validateResponse`、`validateUpstream` 默认按收方视角向前兼容（RSP 1.0 第 14 节）：忽略不认识的字段，接受任何 `1.x` 的 `rsp`；必填字段、类型和 type、status、错误码枚举照样严格。传 `{ strict: true }` 则不允许未定义字段、`rsp` 必须是 `1.0`，给 Relay 自测发出的信封和 Conformance 的多余字段警告用。`validateDownstream` 遇到不认识的 `type` 返回规则 `D-TYPE-1`，供给方应回 `not_supported`，其他错误回 `invalid_input`。

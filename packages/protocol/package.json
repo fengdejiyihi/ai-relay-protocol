@@ -1,5 +1,5 @@
 {
-  "name": "@ai-relay/protocol",
+  "name": "@dreamcavy/ai-relay-protocol",
   "version": "1.0.0-rc.1",
   "description": "Relay Supplier Protocol (RSP) 1.0 与 Relay MCP 的单一真相源：JSON Schema、TypeScript 类型、校验器、签名、常量。",
   "license": "Apache-2.0",

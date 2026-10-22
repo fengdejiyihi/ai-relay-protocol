@@ -8,7 +8,7 @@ Relay 沙箱理发店：AI Relay 自营的到店预约商家，也是 **RSP 1.0 
 - SQLite 单文件，预置 7 天时段，每天滚动（北京时间零点后第一次访问时删掉过去的日期、补上新的一天，未来的预约保留）
 - 每个结果返回 `data` + `parts`（markdown + link）
 
-不依赖任何 Web 框架，运行时依赖只有 `@ai-relay/protocol`。SQLite 用 Node 自带的 `node:sqlite`（Node ≥ 22.13 无需开关），不需要编译原生模块。
+不依赖任何 Web 框架，运行时依赖只有 `@dreamcavy/ai-relay-protocol`。SQLite 用 Node 自带的 `node:sqlite`（Node ≥ 22.13 无需开关），不需要编译原生模块。
 
 如果你是要接入 Relay 的产品方，下面的教程就是给你的：照着沙箱的代码走一遍，一个下午能把自己的产品接成 L1。
 
@@ -33,7 +33,7 @@ L1 = 一个端点 + 一份清单，能接全部同步动作（RSP 1.0 第 13 节
 `low` 风险只能用于 `billing: "none"` 且 `readonly: true` 的动作。手机号这类个人信息在 Schema 里标 `"x-pii": true`。写完用协议包校验：
 
 ```ts
-import { validateManifest } from "@ai-relay/protocol";
+import { validateManifest } from "@dreamcavy/ai-relay-protocol";
 const result = validateManifest(JSON.parse(readFileSync("manifest.json", "utf8")));
 if (!result.ok) console.error(result.errors);
 ```
@@ -45,7 +45,7 @@ if (!result.ok) console.error(result.errors);
 Relay 发来的每个请求都带 `X-Relay-Signature: t=<秒>,v1=<hex>`。**用收到的原始请求体字节验**（`Buffer.concat` 拼好直接传），不要逐块解码，也不要先 `JSON.parse` 再序列化。
 
 ```ts
-import { verifySignature } from "@ai-relay/protocol";
+import { verifySignature } from "@dreamcavy/ai-relay-protocol";
 const verified = verifySignature({ secrets: [newSecret, oldSecret], header, body: rawBody });
 if (!verified.ok) return reply(401, { status: "failed", error: { code: "unauthorized" } });
 ```
@@ -119,14 +119,14 @@ RELAY_SECRETS=whsec_local_dev pnpm --filter @ai-relay/sandbox-shop start
 
 ```sh
 node --input-type=module -e '
-const { signBody } = await import("@ai-relay/protocol");
+const { signBody } = await import("@dreamcavy/ai-relay-protocol");
 const body = JSON.stringify({ type: "ping", rsp: "1.0", issued_at: Math.floor(Date.now()/1000), challenge: "hello-relay-sandbox" });
 const res = await fetch("http://127.0.0.1:8787/relay", { method: "POST", body, headers: { "X-Relay-Signature": signBody("whsec_local_dev", body) } });
 console.log(res.status, await res.text());
 '
 ```
 
-（在 `apps/sandbox-shop` 目录下执行，才能解析到 `@ai-relay/protocol`。）
+（在 `apps/sandbox-shop` 目录下执行，才能解析到 `@dreamcavy/ai-relay-protocol`。）
 
 ### 配置
 

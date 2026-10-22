@@ -1,11 +1,11 @@
-# @ai-relay/conformance（占位）
+# @dreamcavy/ai-relay-conformance（占位）
 
 RSP 1.0 接入验收工具，正在开发，实现前不发布到 npm。
 
 目标用法：
 
 ```sh
-npx @ai-relay/conformance --url https://your-product.example.com/relay --secret whsec_… --manifest manifest.json
+npx @dreamcavy/ai-relay-conformance --url https://your-product.example.com/relay --secret whsec_… --manifest manifest.json
 ```
 
 它会读取你的清单，用真签名向你的端点逐项发信封，检查：
