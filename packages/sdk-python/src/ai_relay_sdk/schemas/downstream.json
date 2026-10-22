@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relay.newbeeai.online/schemas/rsp/1.0/downstream.json",
+  "title": "RSP 1.0 下行信封（Relay → 供给方 POST /relay）",
+  "description": "按 type 分发。ping 与 action.invoke 是所有档位的最低要求；其余按档位实现，不认识的 type 返回 not_supported。",
+  "oneOf": [
+    { "$ref": "#/$defs/ping" },
+    { "$ref": "#/$defs/action.invoke" },
+    { "$ref": "#/$defs/task.poll" },
+    { "$ref": "#/$defs/task.cancel" },
+    { "$ref": "#/$defs/proposal.select" },
+    { "$ref": "#/$defs/binding.verify" }
+  ],
+  "$defs": {
+    "base": {
+      "type": "object",
+      "properties": {
+        "rsp": { "$ref": "common.json#/$defs/rsp_version" },
+        "issued_at": { "$ref": "common.json#/$defs/unix_seconds" }
+      },
+      "required": ["type", "rsp", "issued_at"]
+    },
+    "ping": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "ping" },
+        "rsp": true, "issued_at": true,
+        "challenge": { "type": "string", "minLength": 16, "maxLength": 128 }
+      },
+      "required": ["challenge"],
+      "unevaluatedProperties": false
+    },
+    "action.invoke": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "action.invoke" },
+        "rsp": true, "issued_at": true,
+        "order_id": { "$ref": "common.json#/$defs/order_id" },
+        "action": { "$ref": "common.json#/$defs/action_name" },
+        "manifest_version": { "type": "integer", "minimum": 1 },
+        "input": { "type": "object" },
+        "user": { "$ref": "common.json#/$defs/user" },
+        "idempotency_key": { "$ref": "common.json#/$defs/order_id" },
+        "deadline_at": { "$ref": "common.json#/$defs/unix_seconds" }
+      },
+      "required": ["order_id", "action", "manifest_version", "input", "user", "idempotency_key"],
+      "unevaluatedProperties": false
+    },
+    "task.poll": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "task.poll" },
+        "rsp": true, "issued_at": true,
+        "order_id": { "$ref": "common.json#/$defs/order_id" },
+        "task_id": { "$ref": "common.json#/$defs/task_id" }
+      },
+      "required": ["order_id", "task_id"],
+      "unevaluatedProperties": false
+    },
+    "task.cancel": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "task.cancel" },
+        "rsp": true, "issued_at": true,
+        "order_id": { "$ref": "common.json#/$defs/order_id" },
+        "task_id": { "$ref": "common.json#/$defs/task_id" },
+        "reason": { "type": "string", "enum": ["user_cancelled", "expired", "no_selection"] }
+      },
+      "required": ["order_id", "task_id", "reason"],
+      "unevaluatedProperties": false
+    },
+    "proposal.select": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "proposal.select" },
+        "rsp": true, "issued_at": true,
+        "order_id": { "$ref": "common.json#/$defs/order_id" },
+        "task_id": { "$ref": "common.json#/$defs/task_id" },
+        "proposal_id": { "$ref": "common.json#/$defs/proposal_id" }
+      },
+      "required": ["order_id", "task_id", "proposal_id"],
+      "unevaluatedProperties": false
+    },
+    "binding.verify": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "binding.verify" },
+        "rsp": true, "issued_at": true,
+        "relay_uid": { "type": "string", "pattern": "^u_[0-9A-Za-z_]{8,64}$" },
+        "code": { "type": "string", "minLength": 4, "maxLength": 128 }
+      },
+      "required": ["relay_uid", "code"],
+      "unevaluatedProperties": false
+    }
+  }
+}

@@ -1,17 +1,22 @@
-# 推 tag protocol-v<版本> 时把 @dreamcavy/ai-relay-protocol 发到 npm。
-# 用 npm 可信发布（OIDC），不存 token；需要先在 npmjs.com 把包绑定到本仓库和本文件。
+# 推 tag 发版，全部走可信发布（OIDC），不存任何 token：
+#   protocol-v<版本>     → npm @dreamcavy/ai-relay-protocol
+#   conformance-v<版本>  → npm @dreamcavy/ai-relay-conformance
+#   sdk-v<版本>          → npm @dreamcavy/ai-relay-sdk
+#   sdk-python-v<版本>   → PyPI dreamcavy-ai-relay-sdk
+# npm 包要先在 npmjs.com 的包设置里把本仓库和本文件配成 Trusted Publisher；PyPI 配 pending publisher（environment: pypi）。
 name: release
 
 on:
   push:
-    tags: ["protocol-v*"]
+    tags: ["protocol-v*", "conformance-v*", "sdk-v*", "sdk-python-v*"]
 
 permissions:
   contents: read
   id-token: write
 
 jobs:
-  publish:
+  npm:
+    if: ${{ !startsWith(github.ref_name, 'sdk-python-v') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -25,10 +30,45 @@ jobs:
       - run: npm install -g npm@11
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - name: 核对 tag 与版本号
+      - name: 由 tag 定包、核对版本
         run: |
-          version=$(node -p "require('./packages/protocol/package.json').version")
-          test "protocol-v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME 与版本 $version 不符"; exit 1; }
-          case "$version" in *-*) echo "NPM_TAG=next" >> "$GITHUB_ENV";; *) echo "NPM_TAG=latest" >> "$GITHUB_ENV";; esac
-      - run: npm publish --access public --provenance --tag "$NPM_TAG"
-        working-directory: packages/protocol
+          case "$GITHUB_REF_NAME" in
+            protocol-v*) dir=packages/protocol ;;
+            conformance-v*) dir=packages/conformance ;;
+            sdk-v*) dir=packages/sdk-node ;;
+            *) echo "不认识的 tag $GITHUB_REF_NAME"; exit 1 ;;
+          esac
+          version=$(node -p "require('./$dir/package.json').version")
+          test "${GITHUB_REF_NAME%-v*}-v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME 与 $dir 版本 $version 不符"; exit 1; }
+          case "$version" in *-*) tag=next ;; *) tag=latest ;; esac
+          echo "PKG_DIR=$dir" >> "$GITHUB_ENV"
+          echo "NPM_TAG=$tag" >> "$GITHUB_ENV"
+      # pnpm pack 把 workspace: 依赖换成真实版本号，再用 npm 发（可信发布 + 来源证明）
+      - name: 发布
+        working-directory: ${{ env.PKG_DIR }}
+        run: |
+          pnpm pack --pack-destination "$RUNNER_TEMP"
+          npm publish "$RUNNER_TEMP"/*.tgz --access public --provenance --tag "$NPM_TAG"
+
+  pypi:
+    if: ${{ startsWith(github.ref_name, 'sdk-python-v') }}
+    runs-on: ubuntu-latest
+    environment: pypi
+    defaults:
+      run:
+        working-directory: packages/sdk-python
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -e ".[test]" build
+      - run: pytest -q
+      - name: 核对版本
+        run: |
+          version=$(python -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          test "sdk-python-v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME 与版本 $version 不符"; exit 1; }
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/sdk-python/dist

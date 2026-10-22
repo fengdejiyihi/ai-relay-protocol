@@ -1,8 +1,60 @@
 {
   "name": "@dreamcavy/ai-relay-conformance",
-  "version": "0.0.0",
-  "private": true,
-  "description": "RSP 1.0 接入验收工具（占位，尚未实现）：对供给方的 POST /relay 端点逐项发真签名信封，全部通过即接入完成。",
+  "version": "0.1.0",
+  "description": "RSP 1.0 接入验收工具：对供给方的 POST /relay 端点逐项发真签名信封，出通过 / 失败 / 警告报告。命令行和 Relay 后台共用。",
   "license": "Apache-2.0",
-  "type": "module"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fengdejiyihi/ai-relay-protocol.git",
+    "directory": "packages/conformance"
+  },
+  "homepage": "https://github.com/fengdejiyihi/ai-relay-protocol/tree/main/packages/conformance#readme",
+  "keywords": [
+    "ai-relay",
+    "rsp",
+    "conformance",
+    "mcp"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "conformance": "./dist/cli.js",
+    "ai-relay-conformance": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "conformance": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@dreamcavy/ai-relay-protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "@ai-relay/sandbox-shop": "workspace:*",
+    "@types/node": "^22.20.5",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
 }

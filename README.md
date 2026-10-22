@@ -12,6 +12,7 @@
 | 参照实现：沙箱理发店（L1，Node，零框架）+ 一步步接入教程 | [`apps/sandbox-shop/`](apps/sandbox-shop/) |
 | 示例清单：同步 L1、异步 L2、多方案 L2 | [`examples/manifests/`](examples/manifests/) |
 | 设计决定（为什么这样设计） | [`docs/adr/`](docs/adr/) |
+| 供给方 Python SDK `dreamcavy-ai-relay-sdk`：验签、分发、幂等、回调，适配 FastAPI / Flask | [`packages/sdk-python/`](packages/sdk-python/) |
 | 接入验收工具 `@dreamcavy/ai-relay-conformance` | [`packages/conformance/`](packages/conformance/)（开发中） |
 | 给 AI 读的入口 | [`llms.txt`](llms.txt)、[`llms-full.txt`](llms-full.txt)、[`AGENTS.md`](AGENTS.md) |
 

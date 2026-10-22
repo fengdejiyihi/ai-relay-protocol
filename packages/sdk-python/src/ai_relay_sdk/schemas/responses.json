@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relay.newbeeai.online/schemas/rsp/1.0/responses.json",
+  "title": "RSP 1.0 同步响应（供给方对下行信封的 HTTP 200 响应体）",
+  "$defs": {
+    "ping": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "ok"
+        },
+        "challenge": {
+          "type": "string"
+        },
+        "rsp": {
+          "$ref": "common.json#/$defs/rsp_version"
+        }
+      },
+      "required": [
+        "status",
+        "challenge",
+        "rsp"
+      ],
+      "additionalProperties": false
+    },
+    "completed": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "completed"
+        },
+        "output": {
+          "$ref": "common.json#/$defs/output"
+        }
+      },
+      "required": [
+        "status",
+        "output"
+      ],
+      "additionalProperties": false
+    },
+    "failed": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "failed"
+        },
+        "error": {
+          "$ref": "common.json#/$defs/error"
+        }
+      },
+      "required": [
+        "status",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "accepted": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "accepted"
+        },
+        "task_id": {
+          "$ref": "common.json#/$defs/task_id"
+        },
+        "eta_seconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "status",
+        "task_id"
+      ],
+      "additionalProperties": false
+    },
+    "pending": {
+      "type": "object",
+      "description": "task.poll 时任务仍在进行",
+      "properties": {
+        "status": {
+          "const": "pending"
+        },
+        "eta_seconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "proposals": {
+      "type": "object",
+      "description": "task.poll 时多方案任务返回当前全部有效方案",
+      "properties": {
+        "status": {
+          "const": "proposals"
+        },
+        "proposals": {
+          "type": "array",
+          "items": {
+            "$ref": "common.json#/$defs/proposal"
+          },
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "status",
+        "proposals"
+      ],
+      "additionalProperties": false
+    },
+    "cancelled": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "cancelled"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "cancel_failed": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "cancel_failed"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "selected": {
+      "type": "object",
+      "description": "proposal.select 被受理；最终结果仍走 completed 回调",
+      "properties": {
+        "status": {
+          "const": "selected"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "bound": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "bound"
+        },
+        "supplier_user_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "display_name": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "status",
+        "supplier_user_ref"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

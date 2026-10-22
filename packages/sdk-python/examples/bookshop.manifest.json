@@ -1,0 +1,79 @@
+{
+  "rsp": "1.0",
+  "supplier": {
+    "name": "示例书店",
+    "description": "Python SDK 的 L1 示例：查书和下单。数据在内存里，重启清空。",
+    "locale": "zh-CN",
+    "categories": ["图书", "示例"],
+    "user_binding": "none"
+  },
+  "endpoint": { "url": "https://bookshop.example.com/relay", "auth": "hmac-sha256" },
+  "actions": [
+    {
+      "name": "search_books",
+      "title": "查书",
+      "description": "按关键词查在售图书，返回书号、书名和价格。",
+      "input": {
+        "type": "object",
+        "properties": { "keyword": { "type": "string", "minLength": 1, "maxLength": 50 } },
+        "required": ["keyword"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "books": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "book_id": { "type": "string" },
+                "title": { "type": "string" },
+                "price_cents": { "type": "integer" },
+                "stock": { "type": "integer" }
+              },
+              "required": ["book_id", "title", "price_cents", "stock"]
+            }
+          }
+        },
+        "required": ["books"]
+      },
+      "readonly": true,
+      "risk": "low",
+      "confirm": "never",
+      "mode": "sync",
+      "billing": "none",
+      "fee": 0,
+      "amount": "none"
+    },
+    {
+      "name": "order_book",
+      "title": "买书",
+      "description": "下单一本书，货到付款。price_cents 照抄 search_books 返回的价格，对不上时返回 invalid_input。",
+      "input": {
+        "type": "object",
+        "properties": {
+          "book_id": { "type": "string" },
+          "price_cents": { "type": "integer", "minimum": 0 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 20 },
+          "phone": { "type": "string", "pattern": "^1[3-9]\\d{9}$", "x-pii": true },
+          "address": { "type": "string", "minLength": 4, "maxLength": 200, "x-pii": true }
+        },
+        "required": ["book_id", "price_cents", "name", "phone", "address"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": { "order_no": { "type": "string" }, "book_id": { "type": "string" }, "price_cents": { "type": "integer" } },
+        "required": ["order_no", "book_id", "price_cents"]
+      },
+      "display_fields": ["book_id", "price_cents", "name", "address"],
+      "risk": "medium",
+      "confirm": "by_grant",
+      "mode": "sync",
+      "billing": "on_complete",
+      "fee": 100,
+      "amount": { "from": "input.price_cents" }
+    }
+  ]
+}

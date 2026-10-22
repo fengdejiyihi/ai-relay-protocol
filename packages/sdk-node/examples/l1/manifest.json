@@ -1,0 +1,85 @@
+{
+  "rsp": "1.0",
+  "supplier": {
+    "name": "示例花店",
+    "description": "演示用在线花店：查询在售鲜花，下单同城配送。用 @dreamcavy/ai-relay-sdk 写的 L1 示例。",
+    "locale": "zh-CN",
+    "categories": ["鲜花", "同城配送"],
+    "user_binding": "none"
+  },
+  "endpoint": { "url": "https://flowers.example.com/relay", "auth": "hmac-sha256", "max_concurrency": 20 },
+  "actions": [
+    {
+      "name": "list_products",
+      "title": "查询鲜花",
+      "description": "返回在售鲜花和价格，可按分类过滤。",
+      "input": {
+        "type": "object",
+        "properties": { "category": { "type": "string", "enum": ["玫瑰", "百合", "向日葵"] } },
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sku": { "type": "string" },
+                "name": { "type": "string" },
+                "category": { "type": "string" },
+                "price_cents": { "type": "integer" },
+                "stock": { "type": "integer" }
+              },
+              "required": ["sku", "name", "category", "price_cents", "stock"]
+            }
+          }
+        },
+        "required": ["products"]
+      },
+      "readonly": true,
+      "risk": "low",
+      "confirm": "never",
+      "mode": "sync",
+      "billing": "none",
+      "fee": 0,
+      "amount": "none",
+      "tags": ["查询"]
+    },
+    {
+      "name": "place_order",
+      "title": "下单送花",
+      "description": "按商品编号下单并同城配送，返回订单号和应付金额。",
+      "input": {
+        "type": "object",
+        "properties": {
+          "sku": { "type": "string", "description": "list_products 返回的 sku" },
+          "quantity": { "type": "integer", "minimum": 1, "maximum": 99 },
+          "total_cents": { "type": "integer", "minimum": 1, "description": "应付总价（分），等于单价乘数量" },
+          "recipient": { "type": "string", "minLength": 1, "maxLength": 50 },
+          "phone": { "type": "string", "pattern": "^1\\d{10}$", "x-pii": true },
+          "address": { "type": "string", "minLength": 5, "maxLength": 200, "x-pii": true }
+        },
+        "required": ["sku", "quantity", "total_cents", "recipient", "phone", "address"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "order_no": { "type": "string" },
+          "total_cents": { "type": "integer" }
+        },
+        "required": ["order_no", "total_cents"]
+      },
+      "display_fields": ["sku", "quantity", "total_cents", "recipient", "address"],
+      "risk": "medium",
+      "confirm": "by_grant",
+      "mode": "sync",
+      "billing": "on_complete",
+      "fee": 100,
+      "amount": { "from": "input.total_cents" },
+      "tags": ["下单"]
+    }
+  ]
+}

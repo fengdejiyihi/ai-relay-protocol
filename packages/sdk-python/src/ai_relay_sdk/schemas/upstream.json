@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relay.newbeeai.online/schemas/rsp/1.0/upstream.json",
+  "title": "RSP 1.0 上行事件（供给方 → Relay POST /v1/callbacks/{order_id}）",
+  "description": "每个事件带 event_id，Relay 按 (order_id, type, event_id) 去重。",
+  "oneOf": [
+    { "$ref": "#/$defs/completed" },
+    { "$ref": "#/$defs/failed" },
+    { "$ref": "#/$defs/proposal.add" },
+    { "$ref": "#/$defs/proposal.withdraw" },
+    { "$ref": "#/$defs/order.dispute" },
+    { "$ref": "#/$defs/cancel_failed" }
+  ],
+  "$defs": {
+    "base": {
+      "type": "object",
+      "properties": {
+        "rsp": { "$ref": "common.json#/$defs/rsp_version" },
+        "order_id": { "$ref": "common.json#/$defs/order_id" },
+        "event_id": { "$ref": "common.json#/$defs/event_id" },
+        "occurred_at": { "$ref": "common.json#/$defs/unix_seconds" }
+      },
+      "required": ["type", "rsp", "order_id", "event_id", "occurred_at"]
+    },
+    "completed": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "completed" }, "rsp": true, "order_id": true, "event_id": true, "occurred_at": true,
+        "output": { "$ref": "common.json#/$defs/output" }
+      },
+      "required": ["output"],
+      "unevaluatedProperties": false
+    },
+    "failed": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "failed" }, "rsp": true, "order_id": true, "event_id": true, "occurred_at": true,
+        "error": { "$ref": "common.json#/$defs/error" }
+      },
+      "required": ["error"],
+      "unevaluatedProperties": false
+    },
+    "proposal.add": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "proposal.add" }, "rsp": true, "order_id": true, "event_id": true, "occurred_at": true,
+        "proposal": { "$ref": "common.json#/$defs/proposal" }
+      },
+      "required": ["proposal"],
+      "unevaluatedProperties": false
+    },
+    "proposal.withdraw": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "proposal.withdraw" }, "rsp": true, "order_id": true, "event_id": true, "occurred_at": true,
+        "proposal_id": { "$ref": "common.json#/$defs/proposal_id" },
+        "reason": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["proposal_id"],
+      "unevaluatedProperties": false
+    },
+    "order.dispute": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "order.dispute" }, "rsp": true, "order_id": true, "event_id": true, "occurred_at": true,
+        "reason": { "type": "string", "minLength": 1, "maxLength": 2000 }
+      },
+      "required": ["reason"],
+      "unevaluatedProperties": false
+    },
+    "cancel_failed": {
+      "allOf": [{ "$ref": "#/$defs/base" }],
+      "properties": {
+        "type": { "const": "cancel_failed" }, "rsp": true, "order_id": true, "event_id": true, "occurred_at": true,
+        "reason": { "type": "string", "maxLength": 1000 }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

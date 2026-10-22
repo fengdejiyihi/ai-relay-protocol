@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relay.newbeeai.online/schemas/rsp/1.0/manifest.json",
+  "title": "RSP 1.0 Manifest（供给方动作清单）",
+  "type": "object",
+  "properties": {
+    "rsp": {
+      "$ref": "common.json#/$defs/rsp_version"
+    },
+    "supplier": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "locale": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "user_binding": {
+          "$ref": "common.json#/$defs/user_binding"
+        },
+        "binding": {
+          "type": "object",
+          "properties": {
+            "help_url": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https://"
+            },
+            "instructions": {
+              "type": "string",
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "help_url"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "locale",
+        "categories",
+        "user_binding"
+      ],
+      "additionalProperties": false
+    },
+    "endpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "auth": {
+          "type": "string",
+          "const": "hmac-sha256"
+        },
+        "max_concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      },
+      "required": [
+        "url",
+        "auth"
+      ],
+      "additionalProperties": false
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    }
+  },
+  "required": [
+    "rsp",
+    "supplier",
+    "endpoint",
+    "actions"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "action": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "common.json#/$defs/action_name"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "input": {
+          "$ref": "#/$defs/object_schema"
+        },
+        "output": {
+          "$ref": "#/$defs/object_schema"
+        },
+        "display_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10
+        },
+        "readonly": {
+          "type": "boolean"
+        },
+        "risk": {
+          "$ref": "common.json#/$defs/risk"
+        },
+        "confirm": {
+          "$ref": "common.json#/$defs/confirm"
+        },
+        "mode": {
+          "$ref": "common.json#/$defs/mode"
+        },
+        "billing": {
+          "$ref": "common.json#/$defs/billing"
+        },
+        "fee": {
+          "$ref": "common.json#/$defs/cents"
+        },
+        "amount": {
+          "$ref": "common.json#/$defs/amount_spec"
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 604800
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "input",
+        "risk",
+        "confirm",
+        "mode",
+        "billing",
+        "fee",
+        "amount"
+      ],
+      "additionalProperties": false
+    },
+    "object_schema": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "object"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    }
+  }
+}

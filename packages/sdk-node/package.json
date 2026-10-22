@@ -1,0 +1,61 @@
+{
+  "name": "@dreamcavy/ai-relay-sdk",
+  "version": "0.1.0",
+  "description": "AI Relay 供给方 Node SDK：一个函数接好 RSP 1.0 的 POST /relay（验签、分发、输入校验、幂等），外加签名回调客户端。",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fengdejiyihi/ai-relay-protocol.git",
+    "directory": "packages/sdk-node"
+  },
+  "homepage": "https://github.com/fengdejiyihi/ai-relay-protocol/tree/main/packages/sdk-node#readme",
+  "bugs": {
+    "url": "https://github.com/fengdejiyihi/ai-relay-protocol/issues"
+  },
+  "keywords": [
+    "ai-relay",
+    "rsp",
+    "sdk",
+    "supplier",
+    "webhook"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "example": "node --experimental-strip-types --disable-warning=ExperimentalWarning examples/l1/server.ts"
+  },
+  "dependencies": {
+    "@dreamcavy/ai-relay-protocol": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.20.5",
+    "express": "^5.1.0",
+    "fastify": "^5.6.1",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

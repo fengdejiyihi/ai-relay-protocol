@@ -1,0 +1,11 @@
+{
+  "list_slots": { "date": "{{$tomorrow}}", "service": "haircut" },
+  "book_slot": {
+    "slot_id": "{{list_slots.slots[0].slot_id}}",
+    "price_cents": "{{list_slots.slots[0].price_cents}}",
+    "name": "验收测试",
+    "phone": "13800138000"
+  },
+  "get_booking": { "booking_id": "{{book_slot.booking_id}}" },
+  "cancel_booking": { "booking_id": "{{book_slot.booking_id}}" }
+}

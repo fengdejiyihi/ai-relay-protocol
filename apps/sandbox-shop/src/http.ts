@@ -5,14 +5,16 @@ import { SERVICES } from "./catalog.js";
 import type { RelayReply } from "./relay.js";
 import type { ShopStore } from "./store.js";
 import { humanTime, shanghaiDate } from "./time.js";
+import { escapeHtml, page, readBody, sendHtml, sendJson } from "./web.js";
 
-/** 信封很小；超过这个大小直接拒绝，不读进内存。 */
-const MAX_BODY_BYTES = 1024 * 1024;
+/** 另外挂在同一个服务上的路由（L2 供给方）。处理了返回 true。 */
+export type ExtraRoute = (req: IncomingMessage, res: ServerResponse, url: URL) => Promise<boolean>;
 
 export interface HttpOptions {
   relay: (rawBody: Uint8Array, signature: string | undefined) => RelayReply;
   store: ShopStore;
   now?: () => number;
+  extra?: ExtraRoute;
 }
 
 /**
@@ -34,6 +36,7 @@ export function createHttpServer(options: HttpOptions): Server {
 
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url ?? "/", "http://localhost");
+    if (options.extra && (await options.extra(req, res, url))) return;
     if (url.pathname === "/relay") {
       if (req.method !== "POST") return sendJson(res, 405, { error: "只接受 POST" }, { Allow: "POST" });
       const body = await readBody(req);
@@ -75,34 +78,4 @@ function bookingPage(b: { booking_id: string; start: string; service: keyof type
       `<p>${escapeHtml(b.name)}，${maskPhone(b.phone)}</p>` +
       `<p>状态：${b.status === "booked" ? "已预约" : "已取消"}</p>`,
   );
-}
-
-function page(title: string, body: string): string {
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · Relay 沙箱理发店</title><style>body{font:16px/1.6 system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem}table{border-collapse:collapse}td,th{padding:.25rem .75rem;border-bottom:1px solid #ddd;text-align:left}</style></head><body><h1>${escapeHtml(title)}</h1>${body}</body></html>`;
-}
-
-function escapeHtml(text: string): string {
-  return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-}
-
-/** 读原始请求体字节。签名按原始字节算，验签前不解码、不解析。 */
-async function readBody(req: IncomingMessage): Promise<Buffer | null> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of req as AsyncIterable<Buffer>) {
-    size += chunk.length;
-    if (size > MAX_BODY_BYTES) return null;
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
-}
-
-function sendJson(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", ...headers });
-  res.end(JSON.stringify(body));
-}
-
-function sendHtml(res: ServerResponse, status: number, html: string): void {
-  res.writeHead(status, { "Content-Type": "text/html; charset=utf-8" });
-  res.end(html);
 }

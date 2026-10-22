@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dreamcavy-ai-relay-sdk"
+version = "0.1.0"
+description = "AI Relay 供给方 SDK：用 RSP 1.0 把产品接入 AI Relay（验签、信封分发、幂等、回调）"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = ["jsonschema>=4.18"]
+keywords = ["ai-relay", "rsp", "mcp", "webhook", "hmac"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Framework :: FastAPI",
+  "Framework :: Flask",
+  "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+fastapi = ["fastapi>=0.100"]
+flask = ["flask>=2.2"]
+test = ["pytest>=7", "httpx>=0.24", "fastapi>=0.100", "flask>=2.2"]
+
+[project.urls]
+Homepage = "https://github.com/fengdejiyihi/ai-relay-protocol/tree/main/packages/sdk-python"
+Specification = "https://github.com/fengdejiyihi/ai-relay-protocol/blob/main/docs/protocol/rsp-1.0.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ai_relay_sdk = ["py.typed", "schemas/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 140
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501", "UP007"]

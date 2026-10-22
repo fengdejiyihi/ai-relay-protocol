@@ -5,10 +5,9 @@ import {
   type Manifest,
   RETRYABLE_ERROR_CODES,
   RSP_VERSION,
-  validateDownstream,
-  verifySignature,
 } from "@dreamcavy/ai-relay-protocol";
 import { ACTIONS, type ActionResponse, failed } from "./actions.js";
+import { openEnvelope } from "./envelope.js";
 import type { ShopStore } from "./store.js";
 
 export interface RelayHandlerOptions {
@@ -76,30 +75,9 @@ export function createRelayHandler(
   }
 
   return (rawBody, signature) => {
-    const verified = verifySignature({
-      secrets: options.secrets,
-      header: signature,
-      body: rawBody,
-      now: Math.floor(now() / 1000),
-    });
-    if (!verified.ok) return { httpStatus: 401, body: failed("unauthorized", `签名校验失败：${verified.reason}`) };
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(typeof rawBody === "string" ? rawBody : Buffer.from(rawBody).toString("utf8"));
-    } catch {
-      return { httpStatus: 200, body: failed("invalid_input", "请求体不是 JSON") };
-    }
-    // 供给方用默认的宽松校验：忽略不认识的字段、接受任何 1.x（RSP 1.0 第 14 节）。
-    const envelope = validateDownstream(parsed);
-    if (!envelope.ok) {
-      // D-TYPE-1：不认识的信封类型（将来的协议版本新增的），回 not_supported 而不是 invalid_input。
-      const unknownType = envelope.errors.find((e) => e.rule === "D-TYPE-1");
-      if (unknownType) return { httpStatus: 200, body: failed("not_supported", unknownType.message) };
-      return { httpStatus: 200, body: failed("invalid_input", "不是合法的 RSP 1.0 信封", envelope.errors) };
-    }
-
-    const value = envelope.value;
+    const opened = openEnvelope(rawBody, signature, options.secrets, now());
+    if (!opened.ok) return opened.reply;
+    const value = opened.envelope;
     switch (value.type) {
       case "ping":
         return { httpStatus: 200, body: { status: "ok", challenge: value.challenge, rsp: RSP_VERSION } };
