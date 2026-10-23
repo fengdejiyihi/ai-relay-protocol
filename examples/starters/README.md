@@ -61,6 +61,16 @@ L1 模板不需要回调和绑定码：`RELAY_SECRET=whsec_dev npm start`，验�
 
 部署前先确认三件事，能省掉大部分来回：能用 SSH 登录服务器；服务器能拉到你的代码（或者你能 `scp`/`rsync` 上传）；部署脚本中断后能从断点重跑。端点上线后在服务器上生成一个测试买家的绑定码（`npm run -s binding-code test_buyer`），填进后台在线验收。
 
+## 一个服务接两个产品
+
+一个账号接多个产品时，每个产品是一个单独的供给方，各有 `supplier_id`、secret 和清单（见[接入总览「一个账号接多个产品」](../../docs/integrate/README.md#一个账号接多个产品)）。Relay 的请求里不带 `supplier_id`，所以两个产品放在同一个服务里时按路径分：
+
+1. **已上线的产品不动**：继续用 `/relay`、`RELAY_SECRET`、原来的 `manifest.json`。
+2. **新产品用新路径和新变量**：比如 `/relay/booking`、`RELAY_SECRET_BOOKING`，清单单独一份（比如 `booking/manifest.json`），里面的 `endpoint.url` 写新路径。
+3. **`server.mjs` 里按路径选配置**：把 `req.url !== "/relay"` 的判断换成「路径 → { secret, 清单, 动作 }」的表，验签、分发、回调签名都用这个路径自己的 secret。新变量没配时不要挂新路径，也不要退回用老产品的 secret。
+4. **幂等表可以共用**：`idempotency_key` 等于 `order_id`，全局唯一。测试手机号、测试买家按产品分开配。
+5. **分别验收**：对两个端点、两份清单各跑一次接入验收，都 0 失败。
+
 ## 模板没做的事
 
 - 输入校验只覆盖常用的 Schema 关键字（类型、必填、长度、范围、枚举、正则）。清单里用了 `oneOf`、嵌套对象校验时，换成完整的 JSON Schema 校验器或 SDK。

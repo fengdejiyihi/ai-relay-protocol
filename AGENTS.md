@@ -10,8 +10,9 @@
 
 工作清单：
 
+0. **先问是不是新产品**。一个账号可以接多个产品，每个产品单独一个供给方，各用各的 `supplier_id`、secret、端点地址和清单。账号接过别的产品时：新产品请用户在供给方后台另开一个，给已接入的产品加功能就改它原来的清单；不要复用、也不要改别的产品的 secret 和端点。见接入总览「一个账号接多个产品」。
 1. **定档位**。3 秒内能给结果的动作用 L1 同步；要排队、人工处理或多方报价的用 L2（`accepted` + 回调）。拿不准先做 L1。
-2. **写清单**。从 [`examples/manifests/sandbox-shop.json`](examples/manifests/sandbox-shop.json) 改。每个动作要有输入输出 JSON Schema 和 6 个通用元数据。`low` 风险只能用于 `billing: "none"` 且 `readonly: true` 的动作。个人信息字段标 `"x-pii": true`。
+2. **写清单**。从[起步模板](examples/starters/README.md)的 `manifest.json` 改，示例见 [`examples/manifests/sandbox-shop.json`](examples/manifests/sandbox-shop.json)。每个动作要有输入输出 JSON Schema 和 6 个通用元数据。`low` 风险只能用于 `billing: "none"` 且 `readonly: true` 的动作。个人信息字段标 `"x-pii": true`。
 3. **验签用原始字节**。先把请求体完整读成字节，对字节算 `HMAC-SHA256(secret, t + "." + body)`，常量时间比较，时间窗 5 分钟。不要先解析 JSON 再序列化。轮换期有两个 secret，依次尝试。规范附录 A 的样例可以用来核对你的实现。
 4. **向前兼容**。忽略信封里不认识的字段，接受任何 `1.x` 的 `rsp`。不要直接用 `downstream.json` 做严格校验来拒绝请求。不认识的 `type` 回 `{"status":"failed","error":{"code":"not_supported"}}`，其他非法输入回 `invalid_input`。
 5. **一律 HTTP 200**。业务失败也是 200 加 `{"status":"failed",…}`。

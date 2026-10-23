@@ -6,9 +6,11 @@
 
 重要：你是供给方，**跳过规范第 15 节**（那是 AI 侧的 Relay MCP，与供给方无关）。供给方代码不做任何计费动作。
 
+一个账号可以接多个产品：每个产品单独开一个供给方，各用各的 `supplier_id`、签名 secret、端点地址、清单和余额；Relay 发来的请求里不带 `supplier_id`，靠端点地址区分。账号接过别的产品时，先问清这次是新产品（另开供给方）还是给已接入的产品加功能（改它原来的清单），见[接入总览](docs/integrate/README.md)「一个账号接多个产品」。
+
 ## 接入指南
 
-- [接入总览](docs/integrate/README.md)：选档位、从注册到上线的 6 步、包的发布状态
+- [接入总览](docs/integrate/README.md)：开始前准备、选档位、从注册到上线、一个账号接多个产品、包的发布状态
 - [L1：一个端点（同步）](docs/integrate/l1.md)：清单、`POST /relay`、验签、幂等、错误码，Node 和 Python SDK 示例，本机自测
 - [L2：异步与多方案](docs/integrate/l2.md)：接单、回调、补拉、取消、多方案
 - [账号绑定](docs/integrate/binding.md)：一次性绑定码和 `binding.verify`

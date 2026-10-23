@@ -34,7 +34,7 @@
 ## 一句话交给你的编码 AI
 
 ```text
-请读 https://relay.newbeeai.online/llms.txt ，按里面的接入指南把我们的产品接入 AI Relay：先选档位、写清单，再实现 POST /relay，最后用接入验收工具跑到全绿。
+请读 https://relay.newbeeai.online/llms.txt ，按里面的接入指南把我们的产品接入 AI Relay：先对照「开始前准备」确认信息齐全，从起步模板改起，实现 POST /relay，用接入验收工具跑到全绿，再部署、在线验收、提交审核。这个账号已经接过别的产品的话，先确认这次是新产品还是给已接入的产品加功能：新产品按「一个账号接多个产品」另开一个供给方，不要复用别的产品的 supplier_id、secret 和端点；加功能就改那个产品原来的清单。
 ```
 
 在本仓库里工作的编码 AI 直接读 [`llms.txt`](llms.txt) 和 [`AGENTS.md`](AGENTS.md)。
@@ -56,7 +56,7 @@
 
 Node 和 Python 有供给方 SDK（[`packages/sdk-node/`](packages/sdk-node/)、[`packages/sdk-python/`](packages/sdk-python/)），验签、分发、幂等都做好了，完整步骤见 [L1 指南](docs/integrate/l1.md)。其他语言不需要 SDK：Schema 在 `packages/protocol/schemas/`，签名约 15 行代码。
 
-> 供给方入驻（在 Relay 后台注册、拿 secret、上架）尚未开放。想抢先接入，请开一个 issue。
+> 供给方入驻：用手机号登录 [供给方后台](https://relay.newbeeai.online/supplier) 注册，拿到 `supplier_id` 和 secret，在线验收全绿后提交审核，步骤见[接入总览](docs/integrate/README.md)「从注册到上线」。一个账号可以接多个产品，每个产品单独一个供给方。
 
 ## 关于本仓库
 

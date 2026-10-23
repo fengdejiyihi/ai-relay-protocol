@@ -68,7 +68,7 @@ RELAY_SECRET=whsec_xxx PORT=8787 pnpm example
 
 | 选项 | 说明 |
 |---|---|
-| `secrets` | 字符串或数组。轮换期新旧两个都放，新的在前 |
+| `secrets` | 字符串或数组。轮换期新旧两个都放，新的在前。只放同一个供给方的 secret：一个服务接两个产品时，每个产品各建一个 handler，挂在各自的路径上 |
 | `manifest` | 提交给 Relay 的清单对象。创建时用协议包的 `validateManifest` 校验，有错误直接抛异常 |
 | `handlers` | `{ 动作名: (input, ctx) => 响应 }`。必须和清单里的动作一一对应，多了少了都抛异常 |
 | `tasks` | 可选，L2 异步：`{ poll, cancel, select }`，分别处理 `task.poll`、`task.cancel`、`proposal.select` |

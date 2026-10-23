@@ -113,7 +113,7 @@ relay = RelayHandler(
 
 | 参数 | 说明 |
 |---|---|
-| `secrets` | Relay 后台给的 secret，字符串或列表。轮换期新旧两个都给，新的在前 |
+| `secrets` | Relay 后台给的 secret，字符串或列表。轮换期新旧两个都给，新的在前。只放同一个供给方的 secret：一个服务接两个产品时，每个产品各建一个 `RelayHandler`，挂在各自的路径上 |
 | `manifest` | 清单 dict 或 JSON 文件路径。构造时按 Schema 校验，清单里每个动作都必须在 `actions` 里有函数 |
 | `actions` | 动作名 → `fn(input: dict, ctx: InvokeContext) -> 响应`，可以是 `async def` |
 | `task_poll` 等 | `fn(envelope: dict) -> 响应`。没给的信封类型回 `not_supported` |
