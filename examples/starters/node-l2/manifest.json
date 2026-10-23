@@ -1,0 +1,59 @@
+{
+  "rsp": "1.0",
+  "supplier": {
+    "name": "示例服务（L2 起步模板）",
+    "description": "起步模板：生成报告（异步单结果）和找服务商（异步多方案，用户选一个）。把名字、说明和动作换成你自己的。",
+    "locale": "zh-CN",
+    "categories": ["示例"],
+    "user_binding": "token",
+    "binding": {
+      "help_url": "https://example.com/settings/ai-relay",
+      "instructions": "登录后在「设置 → AI Relay」生成一次性绑定码，粘贴到 Relay。"
+    }
+  },
+  "endpoint": { "url": "https://example.com/relay", "auth": "hmac-sha256" },
+  "actions": [
+    {
+      "name": "write_report",
+      "title": "生成报告",
+      "description": "按主题生成一份报告，几分钟内完成，返回报告链接。",
+      "input": {
+        "type": "object",
+        "properties": { "topic": { "type": "string", "minLength": 2, "maxLength": 100, "description": "报告主题" } },
+        "required": ["topic"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": { "report_id": { "type": "string" }, "report_url": { "type": "string" } },
+        "required": ["report_id", "report_url"]
+      },
+      "risk": "medium", "confirm": "by_grant", "mode": "async",
+      "billing": "on_complete", "fee": 100, "amount": "none",
+      "timeout_seconds": 3600
+    },
+    {
+      "name": "find_vendor",
+      "title": "找服务商",
+      "description": "把需求发给合作服务商，收集报价方案让用户选一个；选定后返回对方联系方式，并通知对方。",
+      "input": {
+        "type": "object",
+        "properties": {
+          "need": { "type": "string", "minLength": 10, "maxLength": 1000, "description": "需求详情，不要写手机号、微信等联系方式" },
+          "budget_cents": { "type": "integer", "minimum": 0, "description": "预算，单位分；0 表示待商量" }
+        },
+        "required": ["need", "budget_cents"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": { "proposal_id": { "type": "string" }, "vendor": { "type": "string" }, "contact": { "type": "string" } },
+        "required": ["proposal_id", "vendor", "contact"]
+      },
+      "display_fields": ["need", "budget_cents"],
+      "risk": "high", "confirm": "always", "mode": "async_multi",
+      "billing": "on_complete", "fee": 1000, "amount": { "from": "input.budget_cents" },
+      "timeout_seconds": 86400
+    }
+  ]
+}

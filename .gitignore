@@ -6,3 +6,6 @@ coverage/
 .env.*
 !.env.example
 .DS_Store
+
+# 起步模板本机跑出来的 SQLite
+examples/starters/**/*.db

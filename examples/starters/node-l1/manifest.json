@@ -1,0 +1,51 @@
+{
+  "rsp": "1.0",
+  "supplier": {
+    "name": "示例小店（L1 起步模板）",
+    "description": "起步模板：查询在售商品（只读、免费）和下单（收费）。把名字、说明和动作换成你自己的。",
+    "locale": "zh-CN",
+    "categories": ["示例"],
+    "user_binding": "none"
+  },
+  "endpoint": { "url": "https://example.com/relay", "auth": "hmac-sha256" },
+  "actions": [
+    {
+      "name": "list_items",
+      "title": "查询商品",
+      "description": "返回在售商品、编号和单价（分）。",
+      "input": { "type": "object", "properties": { "keyword": { "type": "string", "maxLength": 50 } }, "additionalProperties": false },
+      "output": {
+        "type": "object",
+        "properties": { "items": { "type": "array", "items": { "type": "object" } } },
+        "required": ["items"]
+      },
+      "readonly": true,
+      "risk": "low", "confirm": "never", "mode": "sync",
+      "billing": "none", "fee": 0, "amount": "none"
+    },
+    {
+      "name": "place_order",
+      "title": "下单",
+      "description": "按商品编号下单，返回订单号和应付金额。total_cents 必须等于单价乘数量。",
+      "input": {
+        "type": "object",
+        "properties": {
+          "sku": { "type": "string", "description": "list_items 返回的 sku" },
+          "quantity": { "type": "integer", "minimum": 1, "maximum": 99 },
+          "total_cents": { "type": "integer", "minimum": 1, "description": "应付总价（分）" },
+          "phone": { "type": "string", "pattern": "^1\\d{10}$", "x-pii": true }
+        },
+        "required": ["sku", "quantity", "total_cents", "phone"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": { "order_no": { "type": "string" }, "total_cents": { "type": "integer" } },
+        "required": ["order_no", "total_cents"]
+      },
+      "display_fields": ["sku", "quantity", "total_cents"],
+      "risk": "medium", "confirm": "by_grant", "mode": "sync",
+      "billing": "on_complete", "fee": 100, "amount": { "from": "input.total_cents" }
+    }
+  ]
+}

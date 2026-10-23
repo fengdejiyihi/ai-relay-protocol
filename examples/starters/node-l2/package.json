@@ -1,0 +1,10 @@
+{
+  "name": "ai-relay-starter-l2",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.mjs",
+    "binding-code": "node --disable-warning=ExperimentalWarning server.mjs binding-code"
+  }
+}

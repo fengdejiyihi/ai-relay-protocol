@@ -10,10 +10,10 @@ v0.1 的计费点是「已完成且供给方发 order.confirm」。付费的是�
 ## 决定
 
 - `billing=on_complete`：收到 `completed`（同步响应或回调）的同一个数据库事务里扣建单时快照的 `fee`。`order.confirm` 和 `on_confirm` 废弃。
-- `billing=on_accept` 保留给异步动作，收到 `accepted` 时扣，默认不推荐。
-- 失败、取消、过期都不扣费，也不产生流水。
+- `billing=on_accept` 保留给异步动作，收到 `accepted` 时扣，默认不推荐。之后订单进失败、取消、过期时，同一事务里写一条等额 refund 冲正，净额为 0。
+- 失败、取消、过期都不收费：`on_complete` 的单不产生流水，`on_accept` 的单按上一条冲正。
 - 供给方对某笔已扣费订单有异议，72 小时内发 `order.dispute`，管理员裁定后写 refund 或驳回，必须写原因并进审计。争议率进供给方质量指标。
-- 账本只追加，`(supplier_id, order_id, kind)` 唯一，保证一单最多扣一次。
+- 账本只追加，`(supplier_id, order_id, kind)` 唯一，保证一单最多扣一次、最多退一次（冲正和争议退款都是 refund，二者不会落在同一单上：争议只受理已完成的单）。
 
 ## 后果
 

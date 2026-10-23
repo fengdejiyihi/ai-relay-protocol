@@ -1,0 +1,4 @@
+{
+  "write_report": { "topic": "接入验收测试" },
+  "find_vendor": { "need": "接入验收测试：做一个预约小程序，含后台。", "budget_cents": 50000 }
+}

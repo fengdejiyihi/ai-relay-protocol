@@ -1,0 +1,9 @@
+{
+  "list_items": {},
+  "place_order": {
+    "sku": "{{list_items.items[0].sku}}",
+    "quantity": 1,
+    "total_cents": "{{list_items.items[0].price_cents}}",
+    "phone": "13800138000"
+  }
+}
