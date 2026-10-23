@@ -269,6 +269,8 @@ export interface RelayInvokeInput {
   input: Record<string, unknown>;
   request_id?: string;
   confirmation_code?: string;
+  /** 用户在供给方绑定页拿到、亲手发给 AI 的一次性绑定码；Relay 先绑定再接着下单。只用用户本人在对话里给的码。 */
+  binding_code?: string;
 }
 export interface RelayStatusInput {
   order_id?: string;
@@ -307,6 +309,8 @@ export interface OrderResult {
   message?: string;
   confirm_url?: string;
   bind_url?: string;
+  /** binding_required 时：供给方生成绑定码的页面（清单 binding.help_url），用户在那里拿码后贴回对话。 */
+  bind_help_url?: string;
   /** 授权页链接；grant_risk_exceeded、grant_amount_exceeded、supplier_not_allowed 必带。 */
   grant_url?: string;
   expires_at?: UnixSeconds;
@@ -334,6 +338,10 @@ export interface ActionSummary {
   /** 用户要花的钱从哪来，与清单里的 amount 同一写法。 */
   amount: AmountSpec;
   requires_binding: boolean;
+  /** 当前用户在这个供给方的绑定状态；只在 requires_binding 为 true 时出现。required = 还没绑或已失效，先引导绑定再收集需求。 */
+  binding_status?: "bound" | "required";
+  /** binding_status 为 required 时：供给方生成绑定码的页面。 */
+  bind_help_url?: string;
   /** 输入 Schema 摘要：必填字段名。完整 Schema 用 relay_describe 取。 */
   required_inputs: string[];
 }

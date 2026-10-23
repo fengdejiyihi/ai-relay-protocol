@@ -153,7 +153,8 @@ function bindingVerify(env) {
     if (row.used_by && row.used_by !== env.relay_uid) return failed("unauthorized", "绑定码已被使用");
     db.prepare("UPDATE binding_codes SET used_by = ? WHERE code_hash = ?").run(env.relay_uid, row.code_hash);
     db.prepare("INSERT INTO bindings (relay_uid, account, bound_at) VALUES (?, ?, ?) ON CONFLICT (relay_uid) DO UPDATE SET account = excluded.account").run(env.relay_uid, row.account, now());
-    return { status: "bound", supplier_user_ref: row.account };
+    // display_name 换成用户在你产品里的昵称：Relay 绑定成功时会告诉用户绑的是哪个账号，确认页也会显示。
+    return { status: "bound", supplier_user_ref: row.account, display_name: row.account };
   });
 }
 

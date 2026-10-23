@@ -5,12 +5,12 @@
 | `supplier.user_binding` | 用户怎么绑 | 信封里的 `user.supplier_user_ref` |
 |---|---|---|
 | `none` | 不绑 | `null` |
-| `token` | 在你的产品里生成一次性绑定码，粘贴到 Relay | 你在绑定时返回的账号标识 |
+| `token` | 在你的产品里生成一次性绑定码，发给自己的 AI | 你在绑定时返回的账号标识 |
 | `oauth` | 协议预留，目前不接受 | — |
 
 ## 你要做的两件事
 
-1. **一个生成绑定码的页面**，在你的产品里，用户登录后能打开。地址填到清单的 `supplier.binding.help_url`（必须 `https://`），还可以在 `instructions` 里写一句给用户看的说明（500 字以内）。绑定码应当一次性、10 分钟内有效，库里只存哈希，长度 4–128 个字符。
+1. **一个生成绑定码的页面**，在你的产品里，用户登录后能打开。地址填到清单的 `supplier.binding.help_url`（必须 `https://`），还可以在 `instructions` 里写一句给用户看的说明（500 字以内）。绑定码应当一次性、10 分钟内有效，库里只存哈希，长度 4–128 个字符。页面上生成码之后，提示用户「把这个码发给你的 AI」，码短一点、好抄（比如 `K7Q2-M9XP`），手机上也方便复制。
 2. **处理 `binding.verify` 信封**：核对绑定码，有效就记下 `relay_uid` 和你的账号的对应关系，回 `bound`；无效、过期、用过了回 `failed`（一般用 `unauthorized`）。
 
 ```json
@@ -19,7 +19,7 @@
     "user_binding": "token",
     "binding": {
       "help_url": "https://shop.example.com/settings/ai-relay",
-      "instructions": "在「设置 → AI Relay」生成一次性绑定码，粘贴到 Relay。"
+      "instructions": "在「设置 → AI Relay」生成一次性绑定码，把码发给你的 AI。"
     }
   }
 }
@@ -32,16 +32,17 @@
 { "status": "bound", "supplier_user_ref": "user_10086", "display_name": "小李" }
 ```
 
-`supplier_user_ref` 是你那边的账号标识，最长 256 个字符，之后每次 `action.invoke` 都会原样带在 `user.supplier_user_ref` 里。`display_name` 可选，Relay 页面上显示「已绑定为小李」。
+`supplier_user_ref` 是你那边的账号标识，最长 256 个字符，之后每次 `action.invoke` 都会原样带在 `user.supplier_user_ref` 里。`display_name` 可选，但建议给：绑定成功时 AI 会把它念给用户听，确认页也会写「以你的账号「小李」办理」，用户能当场发现绑错了号。
 
 同一个用户重发同一个码时可以再回 `bound`（Relay 网络重试会这样）；别的用户拿同一个码来，回 `failed`。
 
 ## 用户那边发生什么
 
-1. 用户让 AI 调你的动作，还没绑定时，AI 收到 `binding_required` 和一个 Relay 的绑定链接。
-2. 用户打开链接，Relay 页面上有你的说明和「打开绑定页面」按钮（就是 `help_url`）。
-3. 用户在你的产品里生成绑定码，粘贴回 Relay。Relay 发 `binding.verify`，你回 `bound`。
-4. 用户回到 AI 重试，这次信封里带上了 `supplier_user_ref`。
+1. 用户让 AI 调你的动作，还没绑定时，AI 收到 `binding_required`，里面直接有你的 `help_url`。AI 在搜索结果里就能看到 `binding_status: "required"`，常常会在问细节之前先请用户去绑定。
+2. 用户打开 `help_url`，在你的产品里生成绑定码，把码发给 AI。
+3. AI 带着码重发同一个请求。Relay 发 `binding.verify`，你回 `bound`，Relay 接着就把动作发给你，这次信封里带上了 `supplier_user_ref`。AI 会告诉用户「已绑定你在 X 的账号「小李」」。
+
+用户也可以照旧打开 Relay 的绑定页，把码粘贴在网页上；两条路对你来说都是同一个 `binding.verify`。
 
 用户随时可以在 Relay 的「账号绑定」页解绑。你这边解绑或账号失效时，对 `action.invoke` 回 `unauthorized`：Relay 把这个用户的绑定标为失效，这一笔 AI 收到 `binding_invalid`，下次调用重新走绑定。
 

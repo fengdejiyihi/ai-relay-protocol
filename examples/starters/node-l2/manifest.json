@@ -8,7 +8,7 @@
     "user_binding": "token",
     "binding": {
       "help_url": "https://example.com/settings/ai-relay",
-      "instructions": "登录后在「设置 → AI Relay」生成一次性绑定码，粘贴到 Relay。"
+      "instructions": "登录后在「设置 → AI Relay」生成一次性绑定码，把码发给你的 AI。"
     }
   },
   "endpoint": { "url": "https://example.com/relay", "auth": "hmac-sha256" },
