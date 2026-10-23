@@ -421,7 +421,7 @@ AI 通过 MCP 连接 `https://relay.newbeeai.online/mcp`。工具只有 5 个，
 
 `input` 序列化后不超过 256 KB，超过返回 `failed` + `invalid_input`；大段内容应当让供给方提供上传地址，`input` 里只传链接。MCP 请求体上限 1 MB，超过返回 HTTP 413。
 
-`request_id`：AI 应当为每次「用户意图上的一次下单」生成一个 8–64 位的随机串。同一个 AI 客户端 24 小时内用同一个 `request_id` 重复调用，返回同一笔订单，不会重复下单。
+`request_id`：AI 应当为每次「用户意图上的一次下单」生成一个 8–64 位的随机串。同一个 AI 客户端 24 小时内用同一个 `request_id` 重复调用，返回同一笔订单，不会重复下单。重发时 `supplier_id`、`action`、`input` 必须和第一次一致；改了任何一项都返回 `invalid_input`（不会静默返回按旧参数建的单），改参数就是新的一单，要换一个新的 `request_id`。
 
 ---
 
