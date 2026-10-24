@@ -370,7 +370,7 @@ AI 通过 MCP 连接 `https://relay.newbeeai.online/mcp`。工具只有 5 个，
 | `failed` | `failed`，没建单时不带 | 告诉用户原因 |
 | `pending` | `created` / `dispatched` / `accepted` | 告诉用户正在处理，稍后用 `relay_status` 查 |
 | `awaiting_selection` | `awaiting_selection` | 把 `proposals` 列给用户，用户选定后调 `relay_choose` |
-| `confirmation_required` | `awaiting_confirmation`；选方案或取消时为 `awaiting_selection` / `accepted` | 把 `confirm_url` 给用户，请用户在 Relay 网页确认，之后用 `relay_status` 取结果 |
+| `confirmation_required` | `awaiting_confirmation`；选方案或取消时为 `awaiting_selection` / `accepted` | 把 `confirm_url` 给用户，请用户在 Relay 网页确认，之后用 `relay_status` 取结果。Relay 不会主动通知 AI 用户点了确认还是拒绝，要请用户处理完回到对话里说一声；拒绝后结果是 `cancelled` |
 | `binding_required` | 不带（没建单） | 请用户打开 `bind_help_url`（没有时用 `bind_url`）拿绑定码，用户把码发给你后，用同一个 `request_id` 带 `binding_code` 重发；码无效、限次（带 `retry_after_seconds`）时 `message` 会说明 |
 | `duplicate_suspected` | 不带（没建单） | 没带 `request_id` 且 60 秒内发起了同样的请求，先问用户是否真要再来一次 |
 | `cancelled` / `expired` | 与 result 相同 | 告诉用户 |
