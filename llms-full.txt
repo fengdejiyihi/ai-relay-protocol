@@ -1331,7 +1331,10 @@ AI 通过 MCP 连接 `https://relay.newbeeai.online/mcp`。工具只有 5 个，
 | `confirmation_expired` | 确认超过 10 分钟或确认码失效 | — |
 | `binding_invalid` | 账号绑定已失效，需要重新绑定 | — |
 
-`grant_url` 指向这个 AI 的授权页，用户可以在那里调高风险等级、金额上限或改白名单。
+`grant_url` 指向这个 AI 的授权页，用户可以在那里调高风险等级、金额上限或改白名单。链接带着这次被拒的需求（Relay 签名，一天内有效），
+页面会标出要调的项并按需求预填，用户点保存即可。`error.details`（工具错误时是结果的 `details`）给 AI 看差在哪：`gaps` 一次列出全部差距
+（`missing` 没有有效授权、`supplier` 不在白名单、`risk` 风险超上限、`amount` 金额超上限），`required` 是这次需要的 `max_risk`、`min_amount_cents`，
+`current` 是当前授权。AI 把 `message` 转给用户，用户保存后重新发起（建单前被拒没有建单，同一个 `request_id` 也能用）。
 - 调用本身被拒但订单状态没变时（比如选了不存在的方案、订单已不在可选状态），按 MCP 工具错误返回（`isError: true`），不返回 `failed`，免得 AI 以为订单失败了。
 
 `relay_search` 返回 `{ "results": [...] }`，最多 20 条；`relay_describe` 返回一条。Schema：`mcp/results.json` 的 `search_result`、`describe_result`。
