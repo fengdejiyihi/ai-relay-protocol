@@ -1221,6 +1221,7 @@ Relay 的响应：
 - Relay 只在以下情况重试，且幂等键不变：连接失败、`temporary`、`rate_limited`。
   - 同步路径最多重试 1 次，总预算 20 秒。
   - 异步路径最多重试 3 次，退避 1、4、16 秒。
+  - 供给方给的 `retry_after`（或 HTTP `Retry-After`）比退避长时按它等，但单次最多等 30 秒；一次下发连同重试最长 2 分钟，到点还没成功就按最后一次的结果处理。需要更久的供给方不要靠 `retry_after` 拖住 Relay，先回 `accepted`，办完用回调告诉 Relay。
 - 已发出后 5xx 或超时：结果未知，不自动重试、不扣费，进「待核对」。供给方仍必须幂等，因为后台核对时可能重新下发。
 - AI 到 Relay 这一段另有 `request_id` 去重（第 15 节）。两段都有，模型重试或客户端重连都不会重复下单。
 
@@ -1317,6 +1318,7 @@ AI 通过 MCP 连接 `https://relay.newbeeai.online/mcp`。工具只有 5 个，
 | `duplicate_suspected` | 不带（没建单） | 没带 `request_id` 且 60 秒内发起了同样的请求，先问用户是否真要再来一次 |
 | `cancelled` / `expired` | 与 result 相同 | 告诉用户 |
 
+- 下单确认过了有效期、订单还没被后台迁走的短暂窗口里，`relay_status` 已经按 `expired` 回（`order_status` 也是 `expired`），不再给 `confirm_url`：这时确认一律会被拒。
 - `order_id` 和 `order_status` 同时出现或同时不出现。`pending`、`awaiting_selection`、`confirmation_required`、`completed`、`cancelled`、`expired` 必须带 `order_id`。
 - 「待核对」的订单对 AI 显示为 `pending`，「争议中」的订单显示为 `completed`。
 - `confirmation_required` 和 `binding_required` 必须带 `message`：一句可以直接转给用户的话。其他结果也可以带。
