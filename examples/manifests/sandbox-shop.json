@@ -21,8 +21,8 @@
       "input": {
         "type": "object",
         "properties": {
-          "date": { "type": "string", "format": "date", "description": "要查询的日期，YYYY-MM-DD" },
-          "service": { "type": "string", "enum": ["haircut", "wash", "color"], "description": "服务项目，不填返回全部" }
+          "date": { "title": "日期", "type": "string", "format": "date", "description": "要查询的日期，YYYY-MM-DD" },
+          "service": { "title": "服务项目", "type": "string", "enum": ["haircut", "wash", "color"], "description": "服务项目，不填返回全部" }
         },
         "required": ["date"],
         "additionalProperties": false
@@ -62,10 +62,10 @@
       "input": {
         "type": "object",
         "properties": {
-          "slot_id": { "type": "string", "description": "list_slots 返回的时段 id" },
-          "price_cents": { "type": "integer", "minimum": 0, "description": "该时段的价格（分），照抄 list_slots 返回的 price_cents；和时段价格对不上时返回 invalid_input" },
-          "name": { "type": "string", "minLength": 1, "maxLength": 20, "description": "到店人称呼" },
-          "phone": { "type": "string", "pattern": "^1[3-9]\\d{9}$", "x-pii": true, "description": "手机号，门店用来联系" }
+          "slot_id": { "title": "时段编号", "type": "string", "description": "list_slots 返回的时段 id" },
+          "price_cents": { "title": "价格", "type": "integer", "minimum": 0, "description": "该时段的价格（分），照抄 list_slots 返回的 price_cents；和时段价格对不上时返回 invalid_input" },
+          "name": { "title": "到店称呼", "type": "string", "minLength": 1, "maxLength": 20, "description": "到店人称呼" },
+          "phone": { "title": "手机号", "type": "string", "pattern": "^1[3-9]\\d{9}$", "x-pii": true, "description": "手机号，门店用来联系" }
         },
         "required": ["slot_id", "price_cents", "name", "phone"],
         "additionalProperties": false
@@ -94,7 +94,7 @@
       "title": "查询预约",
       "input": {
         "type": "object",
-        "properties": { "booking_id": { "type": "string" } },
+        "properties": { "booking_id": { "title": "预约号", "type": "string" } },
         "required": ["booking_id"],
         "additionalProperties": false
       },
@@ -120,7 +120,7 @@
       "title": "取消预约",
       "input": {
         "type": "object",
-        "properties": { "booking_id": { "type": "string" } },
+        "properties": { "booking_id": { "title": "预约号", "type": "string" } },
         "required": ["booking_id"],
         "additionalProperties": false
       },

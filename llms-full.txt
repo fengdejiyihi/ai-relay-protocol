@@ -12,7 +12,7 @@
 先把下面「开始前准备」收齐，再把这句话发给 Cursor、Claude Code、Codex 等编码 AI。签名 secret 自己填进环境变量，不要贴给 AI，也不要提交进代码仓库。
 
 ```text
-请读 https://relay.newbeeai.online/llms.txt ，按里面的接入指南把我们的产品接入 AI Relay：先对照「开始前准备」确认信息齐全，从起步模板改起，实现 POST /relay，用接入验收工具跑到全绿，再部署、在线验收、提交审核。这个账号已经接过别的产品的话，先确认这次是新产品还是给已接入的产品加功能：新产品按「一个账号接多个产品」另开一个供给方，不要复用别的产品的 supplier_id、secret 和端点；加功能就改那个产品原来的清单。
+请按 https://relay.newbeeai.online/llms.txt 里的接入指南把我们的产品接入 AI Relay：先对照「开始前准备」确认信息齐全，从起步模板改起，实现 POST /relay，用接入验收工具跑到全绿，再部署、在线验收、提交审核。这个账号已经接过别的产品的话，先确认这次是新产品还是给已接入的产品加功能：新产品按「一个账号接多个产品」另开一个供给方，不要复用别的产品的 supplier_id、secret 和端点；加功能就改那个产品原来的清单。
 ```
 
 ## 开始前准备
@@ -2206,8 +2206,8 @@ function handle(action, input) {
       "input": {
         "type": "object",
         "properties": {
-          "date": { "type": "string", "format": "date", "description": "要查询的日期，YYYY-MM-DD" },
-          "service": { "type": "string", "enum": ["haircut", "wash", "color"], "description": "服务项目，不填返回全部" }
+          "date": { "title": "日期", "type": "string", "format": "date", "description": "要查询的日期，YYYY-MM-DD" },
+          "service": { "title": "服务项目", "type": "string", "enum": ["haircut", "wash", "color"], "description": "服务项目，不填返回全部" }
         },
         "required": ["date"],
         "additionalProperties": false
@@ -2247,10 +2247,10 @@ function handle(action, input) {
       "input": {
         "type": "object",
         "properties": {
-          "slot_id": { "type": "string", "description": "list_slots 返回的时段 id" },
-          "price_cents": { "type": "integer", "minimum": 0, "description": "该时段的价格（分），照抄 list_slots 返回的 price_cents；和时段价格对不上时返回 invalid_input" },
-          "name": { "type": "string", "minLength": 1, "maxLength": 20, "description": "到店人称呼" },
-          "phone": { "type": "string", "pattern": "^1[3-9]\\d{9}$", "x-pii": true, "description": "手机号，门店用来联系" }
+          "slot_id": { "title": "时段编号", "type": "string", "description": "list_slots 返回的时段 id" },
+          "price_cents": { "title": "价格", "type": "integer", "minimum": 0, "description": "该时段的价格（分），照抄 list_slots 返回的 price_cents；和时段价格对不上时返回 invalid_input" },
+          "name": { "title": "到店称呼", "type": "string", "minLength": 1, "maxLength": 20, "description": "到店人称呼" },
+          "phone": { "title": "手机号", "type": "string", "pattern": "^1[3-9]\\d{9}$", "x-pii": true, "description": "手机号，门店用来联系" }
         },
         "required": ["slot_id", "price_cents", "name", "phone"],
         "additionalProperties": false
@@ -2279,7 +2279,7 @@ function handle(action, input) {
       "title": "查询预约",
       "input": {
         "type": "object",
-        "properties": { "booking_id": { "type": "string" } },
+        "properties": { "booking_id": { "title": "预约号", "type": "string" } },
         "required": ["booking_id"],
         "additionalProperties": false
       },
@@ -2305,7 +2305,7 @@ function handle(action, input) {
       "title": "取消预约",
       "input": {
         "type": "object",
-        "properties": { "booking_id": { "type": "string" } },
+        "properties": { "booking_id": { "title": "预约号", "type": "string" } },
         "required": ["booking_id"],
         "additionalProperties": false
       },
