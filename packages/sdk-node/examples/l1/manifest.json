@@ -77,7 +77,7 @@
       "confirm": "by_grant",
       "mode": "sync",
       "billing": "on_complete",
-      "fee": 100,
+      "fee": 0,
       "amount": { "from": "input.total_cents" },
       "tags": ["下单"]
     }

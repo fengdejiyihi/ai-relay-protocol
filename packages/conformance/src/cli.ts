@@ -20,7 +20,8 @@ const USAGE = `用法：conformance --manifest manifest.json --secret <secret> [
   --require-https       端点不是 HTTPS 直接判失败（默认只警告，方便本机联调）
   --timeout <毫秒>      单个请求超时，默认 60000
   --time-zone <时区>    {{$today}} 按哪个时区算，默认本机时区
-  --allow-zero-fee      允许收费动作 fee=0（只给 Relay 自营的沙箱用，正式入驻不接受）
+  --allow-zero-fee      允许没有成交价（amount 为 "none"）的收费动作 fee=0（只给 Relay 自营的沙箱用，正式入驻不接受）；
+                        有成交价的动作按成交价抽成，fee 本来就填 0，不用这个开关
 
 异步动作（mode 为 async、async_multi）：
   --callback-port <端口>  本机起回调接收端，供给方把回调发到 http://<地址>:<端口>/v1/callbacks/{order_id}；

@@ -52,7 +52,7 @@
       },
       "display_fields": ["need", "budget_cents"],
       "risk": "high", "confirm": "always", "mode": "async_multi",
-      "billing": "on_complete", "fee": 1000, "amount": { "from": "input.budget_cents" },
+      "billing": "on_complete", "fee": 0, "amount": { "from": "input.budget_cents" },
       "timeout_seconds": 86400
     }
   ]

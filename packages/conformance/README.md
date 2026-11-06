@@ -26,7 +26,7 @@ npx @dreamcavy/ai-relay-conformance \
 | `--require-https` | 端点不是 HTTPS 直接判失败（默认只警告，方便本机联调） |
 | `--timeout <毫秒>` | 单个请求的超时，默认 60000（RSP 同步硬超时） |
 | `--time-zone <时区>` | `{{$today}}` 按哪个时区算，默认本机时区 |
-| `--allow-zero-fee` | 允许收费动作 `fee=0`，只给 Relay 自营的沙箱用 |
+| `--allow-zero-fee` | 允许没有成交价（`amount` 为 `"none"`）的收费动作 `fee=0`，只给 Relay 自营的沙箱用。有成交价的动作按成交价抽成，`fee` 本来就填 0，不用这个开关 |
 | `--json` | 输出机器可读的 JSON 报告（结构见 `ConformanceReport`） |
 | `--callback-port <端口>` | 本机起回调接收端，见下文「异步动作」。不给时不验回调，只靠 `task.poll` |
 | `--callback-host <地址>` | 接收端监听的地址，默认 `127.0.0.1`；供给方在另一台机器上时用 `::`（监听所有地址） |
@@ -229,8 +229,7 @@ pnpm --filter @dreamcavy/ai-relay-conformance conformance \
   --manifest ../../examples/manifests/sandbox-shop.json \
   --endpoint http://127.0.0.1:8787/relay \
   --secret whsec_local \
-  --inputs examples/sandbox-shop.inputs.json \
-  --allow-zero-fee
+  --inputs examples/sandbox-shop.inputs.json
 ```
 
 脚本在包目录下执行，相对路径按 `packages/conformance/` 算。测试 `pnpm --filter @dreamcavy/ai-relay-conformance test` 需要先 build（命令行用例跑的是 `dist/cli.js`）。

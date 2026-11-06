@@ -78,8 +78,9 @@ export class Outbox {
     }
 
     if (status !== null && status < 500) {
-      if (status >= 200 && status < 300 && row.copies > 1) {
-        // 「重复回调」：同一个 event_id 原样再发一次。
+      if (row.copies > 1) {
+        // 「重复回调」：同一个 event_id 原样再发一次。第一份被拒了（比如 Relay 补拉先拿到结果、订单已是终态回 409）也照样发：
+        // 接收方先按 event_id 去重再判终态，重复件仍要被认出来；以前只在 2xx 后才发，验收偶尔报「没有重发」。
         store.updateEvent(row.event_id, { copies: row.copies - 1, last_status: status, next_at: now() });
         return;
       }

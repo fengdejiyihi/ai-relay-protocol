@@ -15,9 +15,9 @@ describe("示例清单", () => {
     expect(r.ok ? [] : r.errors).toEqual([]);
   });
 
-  it("沙箱商家 fee=0 只在自营放行下不出警告", () => {
+  it("沙箱商家的收费动作有成交价，按成交价抽成，fee=0 不再出警告", () => {
     expect(checkPlatformPolicy(sandbox, { allowZeroFee: true })).toEqual({ errors: [], warnings: [] });
-    expect(checkPlatformPolicy(sandbox).warnings.map((w) => w.rule)).toEqual(["P-FEE-0"]);
+    expect(checkPlatformPolicy(sandbox)).toEqual({ errors: [], warnings: [] });
   });
 });
 
@@ -142,10 +142,35 @@ describe("语义规则", () => {
 });
 
 describe("平台策略", () => {
-  it("fee 超出 ¥1–¥100 不予通过", () => {
+  it("没有成交价的收费动作按固定 fee 收：fee 超出 ¥1–¥100 不予通过，fee=0 出警告", () => {
+    const m = clone(example("l2-publisher.json"));
+    expect(m.actions[1].amount).toBe("none");
+    m.actions[1].fee = 20000;
+    expect(checkPlatformPolicy(m).errors.map((e) => e.rule)).toEqual(["P-FEE-1"]);
+    m.actions[1].fee = 99;
+    expect(checkPlatformPolicy(m).errors.map((e) => e.rule)).toEqual(["P-FEE-1"]);
+    m.actions[1].fee = 0;
+    expect(checkPlatformPolicy(m).warnings.map((e) => e.rule)).toEqual(["P-FEE-0"]);
+  });
+
+  it("有成交价的收费动作按成交价抽成，fee 不参与计费，不检查范围（ADR-011）", () => {
     const m = clone(example("l2-matching.json"));
     m.actions[0].fee = 20000;
-    expect(checkPlatformPolicy(m).errors.map((e) => e.rule)).toEqual(["P-FEE-1"]);
+    expect(checkPlatformPolicy(m)).toEqual({ errors: [], warnings: [] });
+    m.actions[0].fee = 0;
+    expect(checkPlatformPolicy(m)).toEqual({ errors: [], warnings: [] });
+  });
+
+  it("只读动作按平台的查询单价收：即使清单写了 billing、没有成交价，fee 也不检查范围（ADR-011）", () => {
+    const m = clone(example("l2-publisher.json"));
+    m.actions[1] = { ...m.actions[1], readonly: true, billing: "on_complete", amount: "none", fee: 50 };
+    expect(checkPlatformPolicy(m)).toEqual({ errors: [], warnings: [] });
+    m.actions[1].fee = 20000;
+    expect(checkPlatformPolicy(m).errors).toEqual([]);
+    m.actions[1].fee = 0;
+    expect(checkPlatformPolicy(m).warnings).toEqual([]);
+    // 协议校验照旧提醒：只读动作写的 billing、fee 不参与计费。
+    expect(validateManifest(m).warnings).toEqual([expect.objectContaining({ rule: "M-BILL-2", message: expect.stringContaining("查询单价") })]);
   });
 
   it("V1 不接受 oauth 绑定", () => {

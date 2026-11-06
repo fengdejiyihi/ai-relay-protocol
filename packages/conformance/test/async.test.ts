@@ -11,9 +11,12 @@ afterEach(async () => {
   receiver = undefined;
 });
 
-async function run(faults: AsyncFaults = {}, extra: { callbacks?: boolean; asyncTimeoutMs?: number; totalTimeoutMs?: number } = {}): Promise<Record<string, Check>> {
+async function run(
+  faults: AsyncFaults = {},
+  extra: { callbacks?: boolean; asyncTimeoutMs?: number; totalTimeoutMs?: number; now?: () => number } = {},
+): Promise<Record<string, Check>> {
   receiver = await startCallbackReceiver({ secrets: [ASYNC_SECRET] });
-  fx = await startAsyncFixture(receiver.url, faults);
+  fx = await startAsyncFixture(receiver.url, faults, extra.now ? { now: extra.now } : {});
   const report: ConformanceReport = await runConformance({
     manifest: ASYNC_MANIFEST,
     endpoint: fx.url,
@@ -66,6 +69,12 @@ describe("故意写错的异步供给方逐项报出", () => {
 
   it("重复 event_id 结果不同：callback.dedupe 失败并指出差异", async () => {
     const c = await run({ conflictingDuplicate: true });
+    expect(c["callback.dedupe"]).toMatchObject({ status: "fail", detail: expect.stringContaining("/output/data/image_url") });
+  });
+
+  it("重复 event_id 结果不同、两份跨过整秒：仍指出结果的差异（重发沿用第一份的 occurred_at）", async () => {
+    let t = Date.now();
+    const c = await run({ conflictingDuplicate: true }, { now: () => (t += 1000) });
     expect(c["callback.dedupe"]).toMatchObject({ status: "fail", detail: expect.stringContaining("/output/data/image_url") });
   });
 

@@ -39,7 +39,7 @@ export function validateManifest(input: unknown): ManifestResult {
       errors.push({ path: `${at}/billing`, rule: "M-BILL-1", message: "on_accept 只适用于异步动作；同步动作用 on_complete" });
     }
     if (action.readonly === true && action.billing !== "none") {
-      warnings.push({ path: `${at}/readonly`, rule: "M-BILL-2", message: "只读动作通常不应计费" });
+      warnings.push({ path: `${at}/readonly`, rule: "M-BILL-2", message: "只读动作按平台的查询单价按次收，清单里的 billing、fee 不参与计费" });
     }
     if (action.mode === "sync" && action.timeout_seconds !== undefined) {
       warnings.push({ path: `${at}/timeout_seconds`, rule: "M-MODE-1", message: "同步动作由 20 秒总预算控制，timeout_seconds 会被忽略" });
@@ -98,12 +98,14 @@ export function checkPlatformPolicy(manifest: Manifest, options: PolicyOptions =
   manifest.actions.forEach((action, i) => {
     const at = `/actions/${i}/fee`;
     if (action.billing === "none") return;
+    // 只读动作按平台的查询单价按次收，有成交价（amount 不是 "none"）的收费动作按成交价 × 费率收：fee 都不参与计费，不再要求在定价范围内（ADR-011）。
+    if (action.readonly === true || action.amount !== "none") return;
     if (action.fee === 0) {
       if (!options.allowZeroFee) warnings.push({ path: at, rule: "P-FEE-0", message: "收费动作 fee=0，账本会记 0 元流水" });
       return;
     }
     if (action.fee < PLATFORM_POLICY.feeMinCents || action.fee > PLATFORM_POLICY.feeMaxCents) {
-      errors.push({ path: at, rule: "P-FEE-1", message: `fee 超出平台定价范围 ¥${PLATFORM_POLICY.feeMinCents / 100}–¥${PLATFORM_POLICY.feeMaxCents / 100}` });
+      errors.push({ path: at, rule: "P-FEE-1", message: `没有成交价（amount 为 "none"）的收费动作按固定 fee 收，fee 要在平台定价范围 ¥${PLATFORM_POLICY.feeMinCents / 100}–¥${PLATFORM_POLICY.feeMaxCents / 100}` });
     }
   });
   return { errors, warnings };

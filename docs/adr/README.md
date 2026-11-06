@@ -10,4 +10,5 @@
 | [005](005-billing-on-complete.md) | 计费点为 completed，72 小时争议 | 已定 |
 | [006](006-server-side-confirmation.md) | 确认在服务端判定并绑定参数 | 已定 |
 | [007](007-mcp-five-tools.md) | MCP 固定 5 个工具，无状态，OAuth 2.1 | 已定 |
-| [008](008-fee-and-amount.md) | 手续费 fee 与用户金额 amount 分开 | 已定 |
+| [008](008-fee-and-amount.md) | 手续费 fee 与用户金额 amount 分开 | 部分取代（被 ADR-011：有成交价的动作按成交价抽成） |
+| [011](011-pricing-model.md) | 按成交价抽成的盈利模式：订单 3%、入驻费、查询按次，两个推广期（订单和查询免手续费、免入驻费） | 已定 |

@@ -68,8 +68,9 @@ export interface AsyncFixture {
   close(): Promise<void>;
 }
 
-/** 起一个异步供给方：接单 100 毫秒后完成，回调发到 callbackBase。 */
-export async function startAsyncFixture(callbackBase: string, faults: AsyncFaults = {}): Promise<AsyncFixture> {
+/** 起一个异步供给方：接单 100 毫秒后完成，回调发到 callbackBase。options.now 是回调 occurred_at 用的时钟（测跨秒用）。 */
+export async function startAsyncFixture(callbackBase: string, faults: AsyncFaults = {}, options: { now?: () => number } = {}): Promise<AsyncFixture> {
+  const now = options.now ?? Date.now;
   const tasks = new Map<string, Task>();
   const invoked = new Map<string, unknown>();
   const timers = new Set<NodeJS.Timeout>();
@@ -83,8 +84,8 @@ export async function startAsyncFixture(callbackBase: string, faults: AsyncFault
     timers.add(t);
   };
   const output = (taskId: string, n = 1) => ({ data: { image_url: `https://posters.example.test/${taskId}/${n}.png` } });
-  const callback = async (orderId: string, event: Record<string, unknown>, opts: { eventId?: string; pathOrderId?: string } = {}) => {
-    const body = JSON.stringify({ rsp: "1.0", order_id: orderId, event_id: opts.eventId ?? `evt_${++seq}`, occurred_at: Math.floor(Date.now() / 1000), ...event });
+  const callback = async (orderId: string, event: Record<string, unknown>, opts: { eventId?: string; pathOrderId?: string; occurredAt?: number } = {}) => {
+    const body = JSON.stringify({ rsp: "1.0", order_id: orderId, event_id: opts.eventId ?? `evt_${++seq}`, occurred_at: opts.occurredAt ?? Math.floor(now() / 1000), ...event });
     const secret = faults.badCallbackSignature ? "whsec_not_the_right_one" : ASYNC_SECRET;
     await fetch(`${callbackBase}/v1/callbacks/${opts.pathOrderId ?? orderId}`, {
       method: "POST",
@@ -102,8 +103,11 @@ export async function startAsyncFixture(callbackBase: string, faults: AsyncFault
       await callback(task.order_id, { type: "proposal.add", proposal: { proposal_id: "p_1", title: "方案", content: { data: {} } } });
     }
     const opts = faults.pathMismatch ? { pathOrderId: "ord_someoneelse0000000000" } : {};
-    await callback(task.order_id, { type: "completed", output: output(taskId) }, { ...opts, eventId: `evt_done_${taskId}` });
-    if (faults.conflictingDuplicate) await callback(task.order_id, { type: "completed", output: output(taskId, 2) }, { eventId: `evt_done_${taskId}` });
+    // 重发同一个事件沿用第一份的 occurred_at（真实供给方重发的就是同一份事件），这里只让结果不一样；
+    // 以前每份各取当前秒，两份跨过整秒时第一处差异变成 /occurred_at，测试偶尔失败。
+    const occurredAt = Math.floor(now() / 1000);
+    await callback(task.order_id, { type: "completed", output: output(taskId) }, { ...opts, eventId: `evt_done_${taskId}`, occurredAt });
+    if (faults.conflictingDuplicate) await callback(task.order_id, { type: "completed", output: output(taskId, 2) }, { eventId: `evt_done_${taskId}`, occurredAt });
     if (faults.changeAfterTerminal) await callback(task.order_id, { type: "failed", error: { code: "permanent", message: "又失败了" } });
   };
 

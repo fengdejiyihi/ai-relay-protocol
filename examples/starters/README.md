@@ -31,7 +31,7 @@ L1 模板不需要回调和绑定码：`RELAY_SECRET=whsec_dev npm start`，验�
 
 ## 改成你的业务
 
-1. 改 `manifest.json`：供给方名字、说明、分类，动作的名字、说明、输入输出 Schema、风险、手续费。规则见 [L1 第 1 步](../../docs/integrate/l1.md#第-1-步写清单)。
+1. 改 `manifest.json`：供给方名字、说明、分类，动作的名字、说明、输入输出 Schema、风险、收费方式（有成交价的写 `amount`，Relay 按成交价 × 费率收，`fee` 填 0；没有成交价的才按固定 `fee` 收）。规则见 [L1 第 1 步](../../docs/integrate/l1.md#第-1-步写清单)。
 2. 改 `server.mjs` 里标了 `TODO(业务)` 的函数，其余不用动：
 
 | 模板 | 函数 | 做什么 |

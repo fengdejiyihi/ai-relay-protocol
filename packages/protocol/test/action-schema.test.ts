@@ -52,6 +52,16 @@ describe("动作 Schema 的编译", () => {
     expect(check({ slot_id: "s1" })).toMatchObject({ ok: false });
   });
 
+  it("$schema 写成 2020-12 带末尾 # 的也走共用实例（改前每个都新建实例，等于没优化）", () => {
+    const meta = "https://json-schema.org/draft/2020-12/schema";
+    validateManifest(clone(sandbox));
+    const spy = vi.spyOn(Ajv2020.prototype, "validateSchema");
+    const r = validateManifest(many(5, (i) => ({ $schema: i % 2 ? `${meta}#` : meta, type: "object" })));
+    expect(r.errors).toEqual([]);
+    expect(spy).toHaveBeenCalledTimes(10);
+    expect(new Set(spy.mock.contexts).size).toBe(1);
+  });
+
   it("动作之间的 $id 仍互不影响：不同动作可以用同一个 $id，引用别的动作的 $id 照样找不到", () => {
     const same = validateManifest(many(2, () => ({ $id: "https://example.com/in", type: "object" })));
     expect(same.errors).toEqual([]);
@@ -67,6 +77,8 @@ describe("动作 Schema 的编译", () => {
       { type: "object", required: "q" },
       { type: "object", properties: { q: { type: "string", pattern: "(" } } },
       { $schema: "http://json-schema.org/draft-07/schema#", type: "object" },
+      { $schema: "https://json-schema.org/draft/2020-12/schema#", type: "object" },
+      { $schema: "https://json-schema.org/draft/2020-12/schema#", type: "object", properties: { q: { type: "strin" } } },
       { $schema: 1, type: "object" },
       // 自己定义的 $id 当 $schema：改前在同一个实例里能找到，照旧
       { $id: "https://example.com/meta", $schema: "https://example.com/meta", type: "object" },

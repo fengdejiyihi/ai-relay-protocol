@@ -45,7 +45,7 @@
       },
       "display_fields": ["sku", "quantity", "total_cents"],
       "risk": "medium", "confirm": "by_grant", "mode": "sync",
-      "billing": "on_complete", "fee": 100, "amount": { "from": "input.total_cents" }
+      "billing": "on_complete", "fee": 0, "amount": { "from": "input.total_cents" }
     }
   ]
 }

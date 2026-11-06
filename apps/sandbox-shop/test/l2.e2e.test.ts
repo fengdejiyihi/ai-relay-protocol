@@ -276,6 +276,16 @@ describe("回调投递与故障开关", () => {
     expect(events[0]).toEqual(events[1]);
   });
 
+  it("#dup：第一份被 4xx 拒了（比如补拉先拿到结果、订单已是终态回 409），第二份照样发", async () => {
+    h = await startL2();
+    h.receiver.replies.push(409);
+    const { orderId } = await publish({ ...ARTICLE, title: "重复回调 #dup" });
+    await h.advance(5_000);
+    expect(h.receiver.attempts.map((a) => a.status)).toEqual([409, 200]);
+    expect(new Set(h.receiver.attempts.map((a) => a.event_id)).size).toBe(1);
+    expect(h.shop.l2!.store.events(orderId)[0]).toMatchObject({ state: "sent", last_status: 200 });
+  });
+
   it("CALLBACK_FAULTS 全局开关对所有单子生效", async () => {
     h = await startL2(["dup"]);
     const { orderId } = await publish();
