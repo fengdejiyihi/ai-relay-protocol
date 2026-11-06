@@ -144,10 +144,18 @@ function addProposal(task: Task, seq: number, { store, outbox }: L2Context): voi
   outbox.enqueue("match", { type: "proposal.add", order_id: task.order_id, proposal: toProposal(row) }, task.faults);
 }
 
-export function withdraw(task: Task, p: ProposalRow, reason: string, { store, outbox }: L2Context): void {
+export function withdraw(task: Task, p: ProposalRow, reason: string, { store, outbox, settings, now }: L2Context): void {
   store.setProposalStatus(p.proposal_id, "withdrawn");
   // 已选的方案被撤回：任务回到待选，Relay 那边订单回到 awaiting_selection。
-  if (task.selected_proposal === p.proposal_id) store.updateTask(task.task_id, { state: "open", selected_proposal: null });
+  if (task.selected_proposal === p.proposal_id) {
+    store.updateTask(task.task_id, { state: "open", selected_proposal: null });
+    // 选定期间到点的方案定时已经被跳过（runJob 只在待选时加方案）。回到待选后把还没来的补排上，
+    // 不然可能一个有效方案都不剩、也不会再来，订单一直停在待选。和没到点的原定时重复也没关系：加方案前会先看这个序号来没来过。
+    let k = 0;
+    for (let seq = 1; seq <= VENDORS.length; seq++) {
+      if (!store.proposalBySeq(task.task_id, seq)) store.schedule(task.task_id, "proposal", now() + settings.proposalIntervalMs * ++k, seq);
+    }
+  }
   outbox.enqueue("match", { type: "proposal.withdraw", order_id: task.order_id, proposal_id: p.proposal_id, reason }, task.faults);
 }
 

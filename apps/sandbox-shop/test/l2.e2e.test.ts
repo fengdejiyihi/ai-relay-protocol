@@ -356,6 +356,49 @@ describe("撮合（多方案）", () => {
     expect(eventsFor(h, orderId).at(-1)).toMatchObject({ type: "completed", output: { data: { proposal_id: listed[2]!.proposal_id } } });
   });
 
+  it("#withdraw-selected：方案没来齐就选了，选定期间到点的方案不来；被选的撤回后补上，能换一个完成", async () => {
+    h = await startL2();
+    const { orderId, taskId } = await postRequest({ ...REQUEST, title: "没来齐就选 #withdraw-selected" });
+    // 第 1 个方案 2 秒到，3.5 秒选它；交换联系方式要 3 秒，第 2、3 个方案（4 秒、6 秒）都在选定期间到点
+    await h.advance(3_500);
+    const [first] = (await poll("match", orderId, taskId)).body.proposals as { proposal_id: string }[];
+    expect((await select(orderId, taskId, first!.proposal_id)).body.status).toBe("selected");
+    await h.advance(3_000);
+    expect(eventsFor(h, orderId).map((e) => e.type)).toEqual(["proposal.add", "proposal.withdraw"]);
+    expect((await poll("match", orderId, taskId)).body.status).toBe("pending");
+
+    await h.advance(2_000);
+    const after = await poll("match", orderId, taskId);
+    expect(after.body.status).toBe("proposals");
+    const next = (after.body.proposals as { proposal_id: string }[])[0]!.proposal_id;
+    expect(eventsFor(h, orderId).at(-1)).toMatchObject({ type: "proposal.add", proposal: { proposal_id: next } });
+    expect((await select(orderId, taskId, next)).body.status).toBe("selected");
+    await h.advance(3_000);
+    expect(eventsFor(h, orderId).at(-1)).toMatchObject({ type: "completed", output: { data: { proposal_id: next } } });
+    // 完成后补排的第 3 个方案不再来
+    await h.advance(60_000);
+    expect(eventsFor(h, orderId).map((e) => e.type)).toEqual(["proposal.add", "proposal.withdraw", "proposal.add", "completed"]);
+  });
+
+  it("#withdraw-selected：补排的定时和还没到点的原定时重了，每个方案也只来一次", async () => {
+    h = await startL2();
+    const { orderId, taskId } = await postRequest({ ...REQUEST, title: "撤得早 #withdraw-selected" });
+    // 2.5 秒选第 1 个，5.5 秒撤回：第 2 个（4 秒）被跳过，第 3 个（6 秒）的原定时还没到，又补排了一个
+    await h.advance(2_500);
+    const [first] = (await poll("match", orderId, taskId)).body.proposals as { proposal_id: string }[];
+    expect((await select(orderId, taskId, first!.proposal_id)).body.status).toBe("selected");
+    await h.advance(60_000);
+    const events = eventsFor(h, orderId) as { type: string; proposal?: { proposal_id: string } }[];
+    expect(events.map((e) => e.type)).toEqual(["proposal.add", "proposal.withdraw", "proposal.add", "proposal.add"]);
+    expect(new Set(events.filter((e) => e.proposal).map((e) => e.proposal!.proposal_id)).size).toBe(3);
+    expect(h.shop.l2!.store.proposals(taskId).map((p) => [p.seq, p.status])).toEqual([
+      [1, "withdrawn"],
+      [2, "active"],
+      [3, "active"],
+    ]);
+    expect((await poll("match", orderId, taskId)).body.proposals).toHaveLength(2);
+  });
+
   it("选定的方案被撤回后马上改选，新方案仍要等满 selectDelayMs 才完成", async () => {
     h = await startL2();
     const { orderId, taskId } = await postRequest();

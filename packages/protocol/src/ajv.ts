@@ -64,11 +64,27 @@ export function protocolAjv(flavor: SchemaFlavor = "strict"): Ajv2020 {
 }
 
 /** 供给方动作 Schema 用独立实例编译，避免与协议 Schema 的 $id 冲突。 */
-export function actionAjv(): Ajv2020 {
-  const ajv = new Ajv2020({ allErrors: true, strict: false, allowUnionTypes: true });
+export function actionAjv(options: { validateSchema?: boolean } = {}): Ajv2020 {
+  const ajv = new Ajv2020({ allErrors: true, strict: false, allowUnionTypes: true, ...options });
   addFormats(ajv);
   for (const keyword of VENDOR_KEYWORDS) ajv.addKeyword({ keyword, schemaType: "boolean" });
   return ajv;
+}
+
+const META_2020 = "https://json-schema.org/draft/2020-12/schema";
+/** 只用来按 2020-12 元 Schema 检查动作 Schema，不往里加任何 Schema。 */
+let metaChecker: Ajv2020 | undefined;
+
+/**
+ * 编译一个供给方动作 Schema。每个 Schema 仍在自己的新实例里编译（不同动作的 $id 互不影响），按元 Schema 的检查放到一个
+ * 共用实例上做：新实例第一次检查都要先编译 2020-12 元 Schema（约 10 ms），一份 100 个动作的清单有 200 个 Schema，
+ * 光这一步就 2 秒多，校验期间事件循环被占住。检查本身和 Ajv 编译时自己做的一样（同一个方法，报错文字也一样）。
+ * 写了别的 $schema 的（可能指向这份 Schema 里自己定义的 $id）照旧在新实例里连同检查一起编译。
+ */
+export function compileActionSchema(schema: Record<string, unknown>): ValidateFunction {
+  if (schema.$schema !== undefined && schema.$schema !== META_2020) return actionAjv().compile(schema);
+  (metaChecker ??= actionAjv()).validateSchema(schema, true);
+  return actionAjv({ validateSchema: false }).compile(schema);
 }
 
 const cache = new Map<string, ValidateFunction>();

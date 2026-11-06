@@ -1,5 +1,5 @@
 import { PLATFORM_POLICY } from "./constants.js";
-import { actionAjv, type Issue, toIssues, validatorFor } from "./ajv.js";
+import { compileActionSchema, type Issue, toIssues, validatorFor } from "./ajv.js";
 import { SCHEMA_IDS } from "./schemas.js";
 import type { AmountSpec, Confirm, Manifest, ManifestAction, Risk } from "./types.js";
 
@@ -69,7 +69,7 @@ export function validateManifest(input: unknown): ManifestResult {
       const schema = action[key];
       if (!schema) continue;
       try {
-        actionAjv().compile(schema);
+        compileActionSchema(schema);
       } catch (err) {
         errors.push({ path: `${at}/${key}`, rule: "M-SCHEMA-1", message: `不是合法的 JSON Schema 2020-12：${(err as Error).message}` });
       }

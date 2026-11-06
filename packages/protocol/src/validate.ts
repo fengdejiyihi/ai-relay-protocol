@@ -1,5 +1,5 @@
 import { DOWNSTREAM_TYPES, RESPONSE_STATUSES_BY_TYPE } from "./constants.js";
-import { actionAjv, type Issue, type SchemaFlavor, toIssues, validatorFor } from "./ajv.js";
+import { compileActionSchema, type Issue, type SchemaFlavor, toIssues, validatorFor } from "./ajv.js";
 import { SCHEMA_IDS } from "./schemas.js";
 import type {
   DescribeResult,
@@ -102,7 +102,7 @@ export function validateDescribeResult(input: unknown): Result<DescribeResult> {
 
 /** 按动作的 input Schema 校验 AI 给出的输入。Relay 下发前调用。 */
 export function compileActionInput(schema: Record<string, unknown>): (input: unknown) => Result<Record<string, unknown>> {
-  const validate = actionAjv().compile(schema);
+  const validate = compileActionSchema(schema);
   return (input) =>
     validate(input) ? { ok: true, value: input as Record<string, unknown> } : { ok: false, errors: toIssues(validate.errors) };
 }
